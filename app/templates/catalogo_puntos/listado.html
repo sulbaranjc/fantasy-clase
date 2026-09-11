@@ -1,0 +1,69 @@
+{% extends "base.html" %}
+{% block titulo %}Catálogo de puntos{% endblock %}
+{% block contenido %}
+  <h1 class="h3 mb-4">Catálogo de puntos</h1>
+
+  <div class="table-responsive mb-5">
+    <table class="table table-striped align-middle">
+      <thead>
+        <tr>
+          <th>Evento</th>
+          <th class="text-end">Puntos</th>
+          <th>Estado</th>
+          <th></th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for evento in eventos %}
+        <tr>
+          <td>{{ evento.nombre }}</td>
+          <td class="text-end {{ 'text-success' if evento.puntos >= 0 else 'text-danger' }}">
+            {{ "+%d"|format(evento.puntos) if evento.puntos >= 0 else evento.puntos }}
+          </td>
+          <td>
+            {% if evento.activo %}
+              <span class="badge text-bg-success">Activo</span>
+            {% else %}
+              <span class="badge text-bg-secondary">Inactivo</span>
+            {% endif %}
+          </td>
+          <td class="text-end">
+            <button class="btn btn-sm btn-outline-secondary"
+                    data-toggle-activo="{{ evento.id }}"
+                    data-nombre="{{ evento.nombre }}"
+                    data-puntos="{{ evento.puntos }}"
+                    data-activo="{{ 'true' if evento.activo else 'false' }}">
+              {{ "Desactivar" if evento.activo else "Activar" }}
+            </button>
+          </td>
+        </tr>
+        {% else %}
+        <tr><td colspan="4" class="text-center text-muted">Todavía no hay eventos en el catálogo de esta clase.</td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+
+  <h2 class="h5 mb-3">Nuevo tipo de evento</h2>
+  <div id="alerta-nuevo-evento" class="alert alert-danger d-none" role="alert"></div>
+  <form class="necesita-validacion row g-3" novalidate id="form-nuevo-evento"
+        action="/catalogo-puntos?clase_id={{ clase_id }}">
+    <div class="col-md-8">
+      <label class="form-label" for="nombre">Nombre del evento</label>
+      <input class="form-control" id="nombre" name="nombre" required maxlength="160"
+             placeholder="Ej. Examen &gt;9">
+      <div class="invalid-feedback">Indica un nombre para el evento.</div>
+    </div>
+    <div class="col-md-4">
+      <label class="form-label" for="puntos">Puntos (puede ser negativo)</label>
+      <input class="form-control" type="number" id="puntos" name="puntos" required min="-100" max="100">
+      <div class="invalid-feedback">Indica la puntuación del evento.</div>
+    </div>
+    <div class="col-12">
+      <button class="btn btn-primary" type="submit">Añadir al catálogo</button>
+    </div>
+  </form>
+{% endblock %}
+{% block scripts %}
+  <script src="/static/js/catalogo_puntos.js"></script>
+{% endblock %}

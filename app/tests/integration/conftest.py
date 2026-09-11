@@ -4,12 +4,14 @@ Todas ejercitan la app real (lifespan real -> pool de MySQL real) contra la
 base de datos del propio docker-compose de desarrollo.
 """
 import uuid
+from datetime import date
 
 import pytest_asyncio
 from httpx import ASGITransport, AsyncClient
 
 from core.database import get_pool
 from main import app
+from modules.clases import repository as clases_repository
 
 
 @pytest_asyncio.fixture
@@ -46,3 +48,29 @@ async def profesor_id(cliente):
     async with pool.acquire() as conn:
         async with conn.cursor() as cur:
             await cur.execute("DELETE FROM profesores WHERE id = %s", (nuevo_id,))
+
+
+@pytest_asyncio.fixture
+async def clase_id(profesor_id):
+    """Crea una clase de prueba (a través del propio módulo `clases`, no
+    con SQL a mano) para los módulos que dependen de una clase existente
+    (catalogo_puntos, jornadas, eventos, plantillas...).
+
+    No hace falta limpiarla explícitamente: al borrar el profesor de
+    prueba, la cascada de la base de datos se lleva también sus clases.
+    """
+    pool = get_pool()
+    nuevo_id = await clases_repository.crear(
+        pool,
+        profesor_id=profesor_id,
+        nombre="Clase de prueba",
+        fecha_inicio=date(2026, 9, 21),
+        fecha_fin=date(2027, 3, 5),
+        duracion_jornada_dias=14,
+        ventana_fichaje_horas=24,
+        valor_inicial_jugador=20,
+        valor_minimo_jugador=10,
+        factor_recalculo_valor=0.10,
+        presupuesto_manager=120,
+    )
+    return nuevo_id
