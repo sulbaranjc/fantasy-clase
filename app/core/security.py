@@ -21,7 +21,14 @@ def hash_password(password: str) -> str:
 
 
 def verify_password(password: str, password_hash: str) -> bool:
-    return _pwd_context.verify(password, password_hash)
+    """False ante cualquier hash que passlib no reconozca (por ejemplo,
+    un dato corrupto o sembrado a mano), en vez de dejar escapar la
+    excepción interna de passlib: un password_hash inválido debe tratarse
+    igual que una contraseña incorrecta, nunca como un error 500."""
+    try:
+        return _pwd_context.verify(password, password_hash)
+    except ValueError:
+        return False
 
 
 def crear_token(subject: str, claims: dict | None = None) -> str:

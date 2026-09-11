@@ -17,6 +17,7 @@ from modules.catalogo_puntos import repository as catalogo_repository
 from modules.clases import repository as clases_repository
 from modules.jornadas import repository as jornadas_repository
 from modules.jornadas import service as jornadas_service
+from modules.profesores import repository as profesores_repository
 
 
 @pytest_asyncio.fixture
@@ -133,6 +134,34 @@ async def jornada_abierta_id(clase_id):
     }])
     jornadas = await jornadas_repository.listar_por_clase(pool, clase_id)
     return next(j["id"] for j in jornadas if j["numero"] == 99)
+
+
+@pytest_asyncio.fixture
+async def profesor_con_password(cliente):
+    """Como `profesor_id`, pero con una contraseña real conocida en texto
+    plano, para poder probar el login (esa fixture usa un hash ficticio
+    que no corresponde a ninguna contraseña real)."""
+    pool = get_pool()
+    username = f"profesor_login_test_{uuid.uuid4().hex[:12]}"
+    password = "clave-super-segura"
+    nuevo_id = await profesores_repository.crear(pool, "Profesor de login", username, hash_password(password))
+
+    yield {"id": nuevo_id, "username": username, "password": password}
+
+    async with pool.acquire() as conn:
+        async with conn.cursor() as cur:
+            await cur.execute("DELETE FROM profesores WHERE id = %s", (nuevo_id,))
+
+
+@pytest_asyncio.fixture
+async def alumno_con_password(clase_id):
+    """Como `alumno_id`, pero con una contraseña real conocida en texto
+    plano, para poder probar el login."""
+    pool = get_pool()
+    username = f"alumno_login_test_{uuid.uuid4().hex[:12]}"
+    password = "clave-alumno-1234"
+    nuevo_id = await alumnos_repository.crear(pool, clase_id, "Alumno de login", username, hash_password(password), 20)
+    return {"id": nuevo_id, "clase_id": clase_id, "username": username, "password": password}
 
 
 @pytest_asyncio.fixture

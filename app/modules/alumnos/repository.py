@@ -29,6 +29,20 @@ async def obtener_por_id(pool: asyncmy.Pool, alumno_id: int) -> dict | None:
             return await cur.fetchone()
 
 
+async def obtener_por_username(pool: asyncmy.Pool, username: str) -> dict | None:
+    """El username es único entre todos los alumnos de todas las clases
+    del profesor (migración 005), así que el login no necesita saber a
+    qué clase pertenece quien intenta entrar."""
+    async with pool.acquire() as conn:
+        async with conn.cursor(asyncmy.cursors.DictCursor) as cur:
+            await cur.execute(
+                "SELECT id, clase_id, nombre, username, password_hash, valor_actual "
+                "FROM alumnos WHERE username = %s",
+                (username,),
+            )
+            return await cur.fetchone()
+
+
 async def crear(pool: asyncmy.Pool, clase_id: int, nombre: str, username: str,
                  password_hash: str, valor_inicial: int) -> int:
     async with pool.acquire() as conn:

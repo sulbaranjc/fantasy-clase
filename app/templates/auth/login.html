@@ -1,0 +1,52 @@
+{% extends "base.html" %}
+{% block titulo %}Iniciar sesión{% endblock %}
+{% block contenido %}
+  <div class="row justify-content-center">
+    <div class="col-md-6 col-lg-5">
+      <h1 class="h3 mb-4 text-center">Iniciar sesión</h1>
+
+      <ul class="nav nav-tabs mb-3" role="tablist">
+        <li class="nav-item" role="presentation">
+          <button class="nav-link active" data-bs-toggle="tab" data-bs-target="#panel-alumno" type="button">Alumno</button>
+        </li>
+        <li class="nav-item" role="presentation">
+          <button class="nav-link" data-bs-toggle="tab" data-bs-target="#panel-profesor" type="button">Profesor</button>
+        </li>
+      </ul>
+
+      <div id="alerta-login" class="alert alert-danger d-none" role="alert"></div>
+
+      <div class="tab-content">
+        <div class="tab-pane fade show active" id="panel-alumno">
+          <form class="necesita-validacion formulario-login" novalidate data-action="/auth/alumno/login">
+            <div class="mb-3">
+              <label class="form-label" for="alumno-username">Usuario</label>
+              <input class="form-control" id="alumno-username" name="username" required>
+            </div>
+            <div class="mb-3">
+              <label class="form-label" for="alumno-password">Contraseña</label>
+              <input class="form-control" type="password" id="alumno-password" name="password" required>
+            </div>
+            <button class="btn btn-primary w-100" type="submit">Entrar</button>
+          </form>
+        </div>
+        <div class="tab-pane fade" id="panel-profesor">
+          <form class="necesita-validacion formulario-login" novalidate data-action="/auth/profesor/login">
+            <div class="mb-3">
+              <label class="form-label" for="profesor-username">Usuario</label>
+              <input class="form-control" id="profesor-username" name="username" required>
+            </div>
+            <div class="mb-3">
+              <label class="form-label" for="profesor-password">Contraseña</label>
+              <input class="form-control" type="password" id="profesor-password" name="password" required>
+            </div>
+            <button class="btn btn-primary w-100" type="submit">Entrar</button>
+          </form>
+        </div>
+      </div>
+    </div>
+  </div>
+{% endblock %}
+{% block scripts %}
+  <script src="/static/js/auth.js"></script>
+{% endblock %}
