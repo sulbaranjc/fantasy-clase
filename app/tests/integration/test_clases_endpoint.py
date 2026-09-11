@@ -1,5 +1,16 @@
-"""Pruebas de integración del módulo clases contra MySQL real."""
+"""Pruebas de integración del módulo clases contra MySQL real.
+
+Todos los endpoints requieren una sesión de profesor; la fixture
+`profesor_id` ya deja al `cliente` autenticado como ese profesor.
+"""
+from datetime import date
+
 import pytest
+
+from core.database import get_pool
+from core.security import hash_password
+from modules.clases import repository as clases_repository
+from modules.profesores import repository as profesores_repository
 
 
 @pytest.mark.asyncio
@@ -11,7 +22,7 @@ async def test_crear_clase_y_recuperarla(cliente, profesor_id):
         "presupuesto_manager": 120,
     }
 
-    respuesta_creacion = await cliente.post("/clases", params={"profesor_id": profesor_id}, json=payload)
+    respuesta_creacion = await cliente.post("/clases", json=payload)
     assert respuesta_creacion.status_code == 201
     clase_creada = respuesta_creacion.json()
     assert clase_creada["nombre"] == payload["nombre"]
@@ -24,7 +35,7 @@ async def test_crear_clase_y_recuperarla(cliente, profesor_id):
     assert respuesta_detalle.status_code == 200
     assert respuesta_detalle.json() == clase_creada
 
-    respuesta_listado = await cliente.get("/clases", params={"profesor_id": profesor_id})
+    respuesta_listado = await cliente.get("/clases")
     assert respuesta_listado.status_code == 200
     ids_listados = [c["id"] for c in respuesta_listado.json()]
     assert clase_creada["id"] in ids_listados
@@ -38,13 +49,41 @@ async def test_rechaza_fecha_fin_anterior_a_fecha_inicio(cliente, profesor_id):
         "fecha_fin": "2026-01-01",
     }
 
-    respuesta = await cliente.post("/clases", params={"profesor_id": profesor_id}, json=payload)
+    respuesta = await cliente.post("/clases", json=payload)
 
     assert respuesta.status_code == 422
 
 
 @pytest.mark.asyncio
-async def test_obtener_clase_inexistente_devuelve_404(cliente):
+async def test_obtener_clase_inexistente_devuelve_404(cliente, profesor_id):
     respuesta = await cliente.get("/clases/999999")
 
     assert respuesta.status_code == 404
+
+
+@pytest.mark.asyncio
+async def test_no_permite_ver_una_clase_de_otro_profesor(cliente, clase_id):
+    # `clase_id` pertenece al profesor con el que el `cliente` inició
+    # sesión. Un segundo profesor no debe poder verla.
+    pool = get_pool()
+    otro_username = f"otro_profesor_test_{clase_id}"
+    otro_id = await profesores_repository.crear(pool, "Otro profesor", otro_username, hash_password("otra-clave-1234"))
+    login = await cliente.post("/auth/profesor/login", json={"username": otro_username, "password": "otra-clave-1234"})
+    assert login.status_code == 200
+
+    try:
+        respuesta = await cliente.get(f"/clases/{clase_id}")
+        assert respuesta.status_code == 404
+    finally:
+        async with pool.acquire() as conn:
+            async with conn.cursor() as cur:
+                await cur.execute("DELETE FROM profesores WHERE id = %s", (otro_id,))
+
+
+@pytest.mark.asyncio
+async def test_requiere_sesion_de_profesor(cliente):
+    respuesta = await cliente.post("/clases", json={
+        "nombre": "Sin sesión", "fecha_inicio": "2026-09-21", "fecha_fin": "2027-03-05",
+    })
+
+    assert respuesta.status_code == 401
