@@ -7,7 +7,8 @@ pydantic-settings==2.5.2
 asyncmy==0.2.9
 cryptography==43.0.1
 PyJWT==2.9.0
-passlib[bcrypt]==1.7.4
+passlib==1.7.4
+bcrypt==4.0.1  # fijado por compatibilidad: passlib 1.7.4 espera bcrypt.__about__.__version__, eliminado en bcrypt>=4.1
 python-dotenv==1.0.1
 
 # Pruebas

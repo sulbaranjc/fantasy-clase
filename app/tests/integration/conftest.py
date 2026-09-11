@@ -10,8 +10,12 @@ import pytest_asyncio
 from httpx import ASGITransport, AsyncClient
 
 from core.database import get_pool
+from core.security import hash_password
 from main import app
+from modules.alumnos import repository as alumnos_repository
+from modules.catalogo_puntos import repository as catalogo_repository
 from modules.clases import repository as clases_repository
+from modules.jornadas import service as jornadas_service
 
 
 @pytest_asyncio.fixture
@@ -74,3 +78,32 @@ async def clase_id(profesor_id):
         presupuesto_manager=120,
     )
     return nuevo_id
+
+
+@pytest_asyncio.fixture
+async def alumno_id(clase_id):
+    """Crea un alumno de prueba en la clase, para los módulos que dependen
+    de un alumno existente (eventos, plantillas...)."""
+    pool = get_pool()
+    username = f"alumno_test_{uuid.uuid4().hex[:12]}"
+    return await alumnos_repository.crear(
+        pool, clase_id, "Alumno de prueba", username, hash_password("clave-no-usada"), 20
+    )
+
+
+@pytest_asyncio.fixture
+async def catalogo_punto_id(clase_id):
+    """Crea un tipo de evento de prueba en la clase, para los módulos que
+    dependen de una entrada del catálogo de puntos (eventos...)."""
+    pool = get_pool()
+    return await catalogo_repository.crear(pool, clase_id, "Evento de prueba", 5)
+
+
+@pytest_asyncio.fixture
+async def jornada_id(clase_id):
+    """Genera el calendario de la clase de prueba y devuelve el id de su
+    primera jornada, para los módulos que dependen de una jornada existente
+    (eventos, plantillas...)."""
+    pool = get_pool()
+    jornadas = await jornadas_service.generar_y_guardar_calendario(pool, clase_id)
+    return jornadas[0]["id"]

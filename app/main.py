@@ -16,6 +16,7 @@ from core.templates import templates
 from modules.alumnos.router import router as alumnos_router
 from modules.catalogo_puntos.router import router as catalogo_puntos_router
 from modules.clases.router import router as clases_router
+from modules.eventos.router import router as eventos_router
 from modules.jornadas.router import router as jornadas_router
 
 configurar_logging()
@@ -41,6 +42,7 @@ app.mount("/static", StaticFiles(directory="static"), name="static")
 app.include_router(alumnos_router)
 app.include_router(catalogo_puntos_router)
 app.include_router(clases_router)
+app.include_router(eventos_router)
 app.include_router(jornadas_router)
 
 
