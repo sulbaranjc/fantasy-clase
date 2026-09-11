@@ -2,7 +2,11 @@
 base de datos MySQL real (la del propio docker-compose de desarrollo),
 verificando el flujo completo petición -> servicio -> base de datos.
 """
+from datetime import date
+
 import pytest
+
+from modules.clases import repository as clases_repository
 
 
 @pytest.mark.asyncio
@@ -45,6 +49,33 @@ async def test_no_permite_usuarios_duplicados_en_la_misma_clase(cliente, clase_i
     segunda = await cliente.post(
         "/alumnos", params={"clase_id": clase_id},
         json={"nombre": "Otro alumno", "username": "duplicado", "password": "clave5678"},
+    )
+    assert segunda.status_code == 409
+
+
+@pytest.mark.asyncio
+async def test_no_permite_usuarios_duplicados_entre_clases_distintas(cliente, clase_id, profesor_id):
+    # El username es único entre TODAS las clases del profesor (migración
+    # 005): el login de alumno no pide seleccionar de qué clase es.
+    from core.database import get_pool
+
+    pool = get_pool()
+    otra_clase_id = await clases_repository.crear(
+        pool, profesor_id=profesor_id, nombre="Otra clase", fecha_inicio=date(2026, 9, 21),
+        fecha_fin=date(2027, 3, 5), duracion_jornada_dias=14, ventana_fichaje_horas=24,
+        valor_inicial_jugador=20, valor_minimo_jugador=10, factor_recalculo_valor=0.10,
+        presupuesto_manager=120,
+    )
+
+    primera = await cliente.post(
+        "/alumnos", params={"clase_id": clase_id},
+        json={"nombre": "Alumno 1", "username": "compartido", "password": "clave1234"},
+    )
+    assert primera.status_code == 201
+
+    segunda = await cliente.post(
+        "/alumnos", params={"clase_id": otra_clase_id},
+        json={"nombre": "Alumno de otra clase", "username": "compartido", "password": "clave5678"},
     )
     assert segunda.status_code == 409
 

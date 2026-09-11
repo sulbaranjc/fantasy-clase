@@ -14,7 +14,8 @@ from modules.alumnos import repository
 
 
 class UsernameDuplicadoError(Exception):
-    """Ya existe un alumno con ese usuario en la misma clase."""
+    """Ya existe un alumno con ese usuario (único entre todas las clases
+    del profesor: el login de alumno no pide seleccionar clase)."""
 
 
 def recalcular_valor(valor_anterior: int, puntos_jornada: int, factor: float,
@@ -45,7 +46,7 @@ async def crear_alumno(pool: asyncmy.Pool, clase_id: int, nombre: str,
         return await repository.crear(pool, clase_id, nombre, username, password_hash, valor_inicial)
     except IntegrityError as exc:
         raise UsernameDuplicadoError(
-            f"Ya existe un alumno con el usuario «{username}» en esta clase."
+            f"Ya existe un alumno con el usuario «{username}»."
         ) from exc
 
 

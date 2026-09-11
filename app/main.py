@@ -6,7 +6,7 @@ estáticos, y los routers de cada módulo (uno por entidad de negocio).
 import logging
 from contextlib import asynccontextmanager
 
-from fastapi import FastAPI, Request
+from fastapi import Depends, FastAPI, Request
 from fastapi.responses import HTMLResponse
 from fastapi.staticfiles import StaticFiles
 
@@ -14,6 +14,9 @@ from core.database import close_pool, get_pool, init_pool
 from core.logging_config import configurar_logging
 from core.templates import templates
 from modules.alumnos.router import router as alumnos_router
+from modules.auth.dependencies import obtener_usuario_actual_opcional
+from modules.auth.router import router as auth_router
+from modules.auth.schemas import UsuarioAutenticado
 from modules.catalogo_puntos.router import router as catalogo_puntos_router
 from modules.clasificacion.router import router as clasificacion_router
 from modules.clases.router import router as clases_router
@@ -42,6 +45,7 @@ app.mount("/static", StaticFiles(directory="static"), name="static")
 # jornadas, plantillas, clasificacion, auth...) se registra aquí conforme
 # se vaya implementando en iteraciones sucesivas.
 app.include_router(alumnos_router)
+app.include_router(auth_router)
 app.include_router(catalogo_puntos_router)
 app.include_router(clasificacion_router)
 app.include_router(clases_router)
@@ -51,8 +55,8 @@ app.include_router(plantillas_router)
 
 
 @app.get("/", response_class=HTMLResponse)
-async def home(request: Request):
-    return templates.TemplateResponse(request, "index.html", {})
+async def home(request: Request, usuario: UsuarioAutenticado | None = Depends(obtener_usuario_actual_opcional)):
+    return templates.TemplateResponse(request, "index.html", {"usuario": usuario})
 
 
 @app.get("/salud")
