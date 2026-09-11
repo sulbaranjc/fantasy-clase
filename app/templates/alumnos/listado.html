@@ -1,0 +1,27 @@
+{% extends "base.html" %}
+{% block titulo %}Alumnos{% endblock %}
+{% block contenido %}
+  <h1 class="h3 mb-4">Alumnos de la clase</h1>
+  <div class="table-responsive">
+    <table class="table table-striped align-middle">
+      <thead>
+        <tr>
+          <th>Nombre</th>
+          <th>Usuario</th>
+          <th class="text-end">Valor de mercado</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for alumno in alumnos %}
+        <tr>
+          <td>{{ alumno.nombre }}</td>
+          <td>{{ alumno.username }}</td>
+          <td class="text-end">{{ alumno.valor_actual }}</td>
+        </tr>
+        {% else %}
+        <tr><td colspan="3" class="text-center text-muted">Todavía no hay alumnos en esta clase.</td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+{% endblock %}

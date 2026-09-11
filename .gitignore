@@ -1,0 +1,26 @@
+# Entorno y secretos
+.env
+*.env.local
+
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+.pytest_cache/
+.venv/
+venv/
+
+# Docker / datos
+db_data/
+*.sql.gz
+backups/
+app/logs/
+
+# Editor / SO
+.vscode/
+.idea/
+.DS_Store
+*.swp
+
+# Documentos temporales de Office
+~$*.docx

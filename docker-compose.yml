@@ -1,0 +1,42 @@
+services:
+  db:
+    image: mysql:8.4
+    restart: unless-stopped
+    environment:
+      MYSQL_ROOT_PASSWORD: ${DB_ROOT_PASSWORD:-changeme_root}
+      MYSQL_DATABASE: ${DB_NAME:-fantasy_clase}
+      MYSQL_USER: ${DB_USER:-fantasy_app}
+      MYSQL_PASSWORD: ${DB_PASSWORD:-changeme_app}
+    ports:
+      - "3307:3306" # solo para inspección local, no exponer en el servidor de despliegue
+    volumes:
+      - db_data:/var/lib/mysql
+      - ./db/migrations:/migrations:ro
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-u", "root", "-p${DB_ROOT_PASSWORD:-changeme_root}"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  app:
+    build:
+      context: ./app
+    restart: unless-stopped
+    environment:
+      DB_HOST: db
+      DB_PORT: 3306
+      DB_NAME: ${DB_NAME:-fantasy_clase}
+      DB_USER: ${DB_USER:-fantasy_app}
+      DB_PASSWORD: ${DB_PASSWORD:-changeme_app}
+      JWT_SECRET: ${JWT_SECRET:-changeme_jwt_secret}
+      LOG_LEVEL: ${LOG_LEVEL:-INFO}
+    volumes:
+      - ./app:/code # hot-reload en desarrollo local
+    ports:
+      - "8000:8000"
+    depends_on:
+      db:
+        condition: service_healthy
+
+volumes:
+  db_data:
