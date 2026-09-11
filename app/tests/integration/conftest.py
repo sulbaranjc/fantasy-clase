@@ -50,6 +50,18 @@ async def login_como_alumno(cliente: AsyncClient, alumno_id: int) -> None:
     assert respuesta.status_code == 200, respuesta.text
 
 
+async def login_como_profesor(cliente: AsyncClient, profesor_id: int) -> None:
+    """Cambia la sesión del `cliente` a la del profesor de prueba
+    identificado por `profesor_id` (fixture `profesor_id`). Útil tras
+    haber cambiado la sesión a un alumno (`login_como_alumno`) y necesitar
+    volver a operar como el profesor dentro del mismo test."""
+    profesor = await profesores_repository.obtener_por_id(get_pool(), profesor_id)
+    respuesta = await cliente.post(
+        "/auth/profesor/login", json={"username": profesor["username"], "password": PASSWORD_PROFESOR_PRUEBA}
+    )
+    assert respuesta.status_code == 200, respuesta.text
+
+
 @pytest_asyncio.fixture
 async def profesor_id(cliente):
     """Inserta un profesor de prueba con una contraseña conocida e inicia

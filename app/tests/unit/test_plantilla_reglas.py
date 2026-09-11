@@ -1,7 +1,7 @@
 """Pruebas unitarias de las funciones puras de `plantillas/service.py`."""
 from datetime import datetime, timedelta
 
-from modules.plantillas.service import esta_dentro_de_ventana, excede_presupuesto
+from modules.plantillas.service import esta_dentro_de_ventana, excede_presupuesto, manager_esta_incluido
 
 
 def test_excede_presupuesto_cuando_la_suma_supera_el_limite():
@@ -40,3 +40,11 @@ def test_ventana_cerrada_despues_del_cierre():
     cierre = apertura + timedelta(hours=24)
     despues = cierre + timedelta(minutes=1)
     assert esta_dentro_de_ventana(despues, apertura, cierre) is False
+
+
+def test_manager_incluido_entre_los_jugadores():
+    assert manager_esta_incluido(1, [1, 2, 3, 4, 5]) is True
+
+
+def test_manager_no_incluido_entre_los_jugadores():
+    assert manager_esta_incluido(9, [1, 2, 3, 4, 5]) is False
