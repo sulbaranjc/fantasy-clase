@@ -1,0 +1,51 @@
+{% extends "base.html" %}
+{% block titulo %}Calendario de jornadas{% endblock %}
+{% block contenido %}
+  <div class="d-flex justify-content-between align-items-center mb-4">
+    <h1 class="h3 mb-0">Calendario de jornadas</h1>
+    <button class="btn btn-primary" id="btn-generar-calendario"
+            data-action="/jornadas/generar?clase_id={{ clase_id }}">
+      Generar calendario
+    </button>
+  </div>
+
+  <div id="alerta-jornadas" class="alert alert-danger d-none" role="alert"></div>
+
+  <div class="table-responsive">
+    <table class="table table-striped align-middle">
+      <thead>
+        <tr>
+          <th>Jornada</th>
+          <th>Inicio</th>
+          <th>Fin</th>
+          <th>Apertura fichajes</th>
+          <th>Cierre fichajes</th>
+          <th>Estado</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for jornada in jornadas %}
+        <tr>
+          <td>{{ jornada.numero }}</td>
+          <td>{{ jornada.fecha_inicio }}</td>
+          <td>{{ jornada.fecha_fin }}</td>
+          <td>{{ jornada.apertura_fichajes }}</td>
+          <td>{{ jornada.cierre_fichajes }}</td>
+          <td>
+            {% if jornada.cerrada %}
+              <span class="badge text-bg-secondary">Cerrada</span>
+            {% else %}
+              <span class="badge text-bg-success">Abierta</span>
+            {% endif %}
+          </td>
+        </tr>
+        {% else %}
+        <tr><td colspan="6" class="text-center text-muted">Todavía no se ha generado el calendario de esta clase.</td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+{% endblock %}
+{% block scripts %}
+  <script src="/static/js/jornadas.js"></script>
+{% endblock %}
