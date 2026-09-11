@@ -18,6 +18,7 @@ from modules.catalogo_puntos.router import router as catalogo_puntos_router
 from modules.clases.router import router as clases_router
 from modules.eventos.router import router as eventos_router
 from modules.jornadas.router import router as jornadas_router
+from modules.plantillas.router import router as plantillas_router
 
 configurar_logging()
 logger = logging.getLogger("fantasy_clase")
@@ -44,6 +45,7 @@ app.include_router(catalogo_puntos_router)
 app.include_router(clases_router)
 app.include_router(eventos_router)
 app.include_router(jornadas_router)
+app.include_router(plantillas_router)
 
 
 @app.get("/", response_class=HTMLResponse)

@@ -4,7 +4,7 @@ Todas ejercitan la app real (lifespan real -> pool de MySQL real) contra la
 base de datos del propio docker-compose de desarrollo.
 """
 import uuid
-from datetime import date
+from datetime import date, datetime, timedelta
 
 import pytest_asyncio
 from httpx import ASGITransport, AsyncClient
@@ -15,6 +15,7 @@ from main import app
 from modules.alumnos import repository as alumnos_repository
 from modules.catalogo_puntos import repository as catalogo_repository
 from modules.clases import repository as clases_repository
+from modules.jornadas import repository as jornadas_repository
 from modules.jornadas import service as jornadas_service
 
 
@@ -107,3 +108,43 @@ async def jornada_id(clase_id):
     pool = get_pool()
     jornadas = await jornadas_service.generar_y_guardar_calendario(pool, clase_id)
     return jornadas[0]["id"]
+
+
+@pytest_asyncio.fixture
+async def jornada_abierta_id(clase_id):
+    """Jornada de prueba cuya ventana de fichajes está abierta *ahora*.
+
+    La fixture `jornada_id` usa el calendario real de la clase (fechas de
+    la temporada 2026/2027 de Fantasy_Clase.xlsx), cuya primera ventana
+    puede no coincidir con el instante en que corren las pruebas. Los
+    módulos que necesitan probar el "camino feliz" de un fichaje dentro
+    de plazo usan esta en su lugar; el número de jornada (99) se elige
+    fuera del rango 1-12 para no chocar si el mismo test también genera
+    el calendario completo.
+    """
+    pool = get_pool()
+    ahora = datetime.now()
+    await jornadas_repository.crear_lote(pool, clase_id, [{
+        "numero": 99,
+        "fecha_inicio": ahora.date(),
+        "fecha_fin": ahora.date(),
+        "apertura_fichajes": ahora - timedelta(hours=1),
+        "cierre_fichajes": ahora + timedelta(hours=1),
+    }])
+    jornadas = await jornadas_repository.listar_por_clase(pool, clase_id)
+    return next(j["id"] for j in jornadas if j["numero"] == 99)
+
+
+@pytest_asyncio.fixture
+async def cinco_alumnos_ids(clase_id):
+    """Cinco alumnos de prueba en la clase, para fichar una plantilla
+    completa (jugadores + manager, que es uno de ellos)."""
+    pool = get_pool()
+    ids = []
+    for _ in range(5):
+        username = f"jugador_test_{uuid.uuid4().hex[:12]}"
+        nuevo_id = await alumnos_repository.crear(
+            pool, clase_id, "Jugador de prueba", username, hash_password("clave-no-usada"), 20
+        )
+        ids.append(nuevo_id)
+    return ids
