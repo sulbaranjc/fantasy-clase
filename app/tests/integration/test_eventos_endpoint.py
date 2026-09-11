@@ -8,6 +8,8 @@ from core.security import hash_password
 from modules.alumnos import repository as alumnos_repository
 from modules.clases import repository as clases_repository
 
+from .conftest import login_como_alumno
+
 
 @pytest.mark.asyncio
 async def test_crear_evento_copia_los_puntos_vigentes_del_catalogo(
@@ -130,3 +132,52 @@ async def test_listar_eventos_de_alumno_y_de_jornada(
 
     assert por_alumno.status_code == 200 and len(por_alumno.json()) == 1
     assert por_jornada.status_code == 200 and len(por_jornada.json()) == 1
+
+
+@pytest.mark.asyncio
+async def test_un_alumno_puede_ver_su_propio_historial(
+    cliente, clase_id, alumno_id, jornada_id, catalogo_punto_id
+):
+    await cliente.post(
+        "/eventos", params={"clase_id": clase_id},
+        json={"alumno_id": alumno_id, "jornada_id": jornada_id,
+              "catalogo_punto_id": catalogo_punto_id, "fecha": "2026-09-22"},
+    )
+
+    await login_como_alumno(cliente, alumno_id)
+    respuesta = await cliente.get(f"/eventos/alumno/{alumno_id}")
+
+    assert respuesta.status_code == 200
+    assert len(respuesta.json()) == 1
+
+
+@pytest.mark.asyncio
+async def test_un_alumno_no_puede_ver_el_historial_de_otro(cliente, clase_id, cinco_alumnos_ids):
+    await login_como_alumno(cliente, cinco_alumnos_ids[0])
+
+    respuesta = await cliente.get(f"/eventos/alumno/{cinco_alumnos_ids[1]}")
+
+    assert respuesta.status_code == 403
+
+
+@pytest.mark.asyncio
+async def test_un_alumno_no_puede_ver_eventos_por_jornada_ni_crear(
+    cliente, clase_id, alumno_id, jornada_id, catalogo_punto_id
+):
+    await login_como_alumno(cliente, alumno_id)
+
+    listado = await cliente.get(f"/eventos/jornada/{jornada_id}")
+    creacion = await cliente.post(
+        "/eventos", params={"clase_id": clase_id},
+        json={"alumno_id": alumno_id, "jornada_id": jornada_id,
+              "catalogo_punto_id": catalogo_punto_id, "fecha": "2026-09-22"},
+    )
+
+    assert listado.status_code == 403
+    assert creacion.status_code == 403
+
+
+@pytest.mark.asyncio
+async def test_requiere_sesion(cliente):
+    respuesta = await cliente.get("/eventos/alumno/1")
+    assert respuesta.status_code == 401
