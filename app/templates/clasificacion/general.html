@@ -1,0 +1,45 @@
+{% extends "base.html" %}
+{% block titulo %}Clasificación general{% endblock %}
+{% block contenido %}
+  <h1 class="h3 mb-4">Clasificación general</h1>
+
+  {% set medallas = {1: "🥇", 2: "🥈", 3: "🥉"} %}
+  <div class="row mb-4 text-center">
+    {% for entrada in clasificacion[:3] %}
+    <div class="col-md-4 mb-3">
+      <div class="card">
+        <div class="card-body">
+          <div class="fs-1">{{ medallas.get(entrada.posicion, "🏅") }}</div>
+          <div class="fw-bold">{{ entrada.nombre }}</div>
+          <div class="text-muted">{{ entrada.puntos_totales }} puntos</div>
+        </div>
+      </div>
+    </div>
+    {% endfor %}
+  </div>
+
+  <div class="table-responsive">
+    <table class="table table-striped align-middle">
+      <thead>
+        <tr>
+          <th>Posición</th>
+          <th>Manager</th>
+          <th class="text-end">Puntos totales</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for entrada in clasificacion %}
+        <tr>
+          <td>{{ entrada.posicion }}</td>
+          <td>{{ entrada.nombre }}</td>
+          <td class="text-end">{{ entrada.puntos_totales }}</td>
+        </tr>
+        {% else %}
+        <tr><td colspan="3" class="text-center text-muted">Todavía no hay datos de clasificación en esta clase.</td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+
+  <p><a href="/clasificacion/vista/validacion-seleccion?clase_id={{ clase_id }}">Ver validación de selección de alumnos</a></p>
+{% endblock %}
