@@ -1,6 +1,8 @@
 """Pruebas de integración del módulo jornadas contra MySQL real."""
 import pytest
 
+from .conftest import login_como_alumno
+
 
 @pytest.mark.asyncio
 async def test_generar_calendario_crea_12_jornadas(cliente, clase_id):
@@ -30,12 +32,38 @@ async def test_no_permite_generar_el_calendario_dos_veces(cliente, clase_id):
 
 
 @pytest.mark.asyncio
-async def test_generar_calendario_de_una_clase_inexistente_devuelve_404(cliente):
+async def test_generar_calendario_de_una_clase_inexistente_devuelve_404(cliente, profesor_id):
     respuesta = await cliente.post("/jornadas/generar", params={"clase_id": 999999})
     assert respuesta.status_code == 404
 
 
 @pytest.mark.asyncio
-async def test_obtener_jornada_inexistente_devuelve_404(cliente):
+async def test_obtener_jornada_inexistente_devuelve_404(cliente, profesor_id):
     respuesta = await cliente.get("/jornadas/999999")
     assert respuesta.status_code == 404
+
+
+@pytest.mark.asyncio
+async def test_un_alumno_puede_listar_las_jornadas_de_su_clase(cliente, clase_id, alumno_id):
+    await cliente.post("/jornadas/generar", params={"clase_id": clase_id})
+    await login_como_alumno(cliente, alumno_id)
+
+    respuesta = await cliente.get("/jornadas", params={"clase_id": clase_id})
+
+    assert respuesta.status_code == 200
+    assert len(respuesta.json()) == 12
+
+
+@pytest.mark.asyncio
+async def test_un_alumno_no_puede_generar_el_calendario(cliente, clase_id, alumno_id):
+    await login_como_alumno(cliente, alumno_id)
+
+    respuesta = await cliente.post("/jornadas/generar", params={"clase_id": clase_id})
+
+    assert respuesta.status_code == 403
+
+
+@pytest.mark.asyncio
+async def test_requiere_sesion(cliente):
+    respuesta = await cliente.get("/jornadas", params={"clase_id": 1})
+    assert respuesta.status_code == 401
