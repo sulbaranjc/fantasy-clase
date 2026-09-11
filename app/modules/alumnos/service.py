@@ -7,9 +7,14 @@ delegan siempre en `repository`, nunca escriben SQL aquí.
 import math
 
 import asyncmy
+from asyncmy.errors import IntegrityError
 
 from core.security import hash_password
 from modules.alumnos import repository
+
+
+class UsernameDuplicadoError(Exception):
+    """Ya existe un alumno con ese usuario en la misma clase."""
 
 
 def recalcular_valor(valor_anterior: int, puntos_jornada: int, factor: float,
@@ -36,4 +41,13 @@ async def listar_alumnos(pool: asyncmy.Pool, clase_id: int) -> list[dict]:
 async def crear_alumno(pool: asyncmy.Pool, clase_id: int, nombre: str,
                         username: str, password: str, valor_inicial: int) -> int:
     password_hash = hash_password(password)
-    return await repository.crear(pool, clase_id, nombre, username, password_hash, valor_inicial)
+    try:
+        return await repository.crear(pool, clase_id, nombre, username, password_hash, valor_inicial)
+    except IntegrityError as exc:
+        raise UsernameDuplicadoError(
+            f"Ya existe un alumno con el usuario «{username}» en esta clase."
+        ) from exc
+
+
+async def obtener_alumno(pool: asyncmy.Pool, alumno_id: int) -> dict | None:
+    return await repository.obtener_por_id(pool, alumno_id)

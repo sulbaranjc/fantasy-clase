@@ -2,7 +2,7 @@
 {% block titulo %}Alumnos{% endblock %}
 {% block contenido %}
   <h1 class="h3 mb-4">Alumnos de la clase</h1>
-  <div class="table-responsive">
+  <div class="table-responsive mb-5">
     <table class="table table-striped align-middle">
       <thead>
         <tr>
@@ -24,4 +24,33 @@
       </tbody>
     </table>
   </div>
+
+  <h2 class="h5 mb-3">Nuevo alumno</h2>
+  <div id="alerta-nuevo-alumno" class="alert alert-danger d-none" role="alert"></div>
+  <form class="necesita-validacion row g-3" novalidate id="form-nuevo-alumno"
+        action="/alumnos?clase_id={{ clase_id }}">
+    <div class="col-md-5">
+      <label class="form-label" for="nombre">Nombre completo</label>
+      <input class="form-control" id="nombre" name="nombre" required maxlength="120">
+      <div class="invalid-feedback">Indica el nombre del alumno.</div>
+    </div>
+    <div class="col-md-4">
+      <label class="form-label" for="username">Usuario</label>
+      <input class="form-control" id="username" name="username" required
+             minlength="3" maxlength="60" pattern="[a-z0-9._-]+"
+             placeholder="ej. maria.lopez">
+      <div class="invalid-feedback">Usuario en minúsculas, sin espacios (letras, números, ".", "_", "-").</div>
+    </div>
+    <div class="col-md-3">
+      <label class="form-label" for="password">Contraseña inicial</label>
+      <input class="form-control" type="text" id="password" name="password" required minlength="4" maxlength="100">
+      <div class="invalid-feedback">Mínimo 4 caracteres.</div>
+    </div>
+    <div class="col-12">
+      <button class="btn btn-primary" type="submit">Añadir alumno</button>
+    </div>
+  </form>
+{% endblock %}
+{% block scripts %}
+  <script src="/static/js/alumnos.js"></script>
 {% endblock %}
