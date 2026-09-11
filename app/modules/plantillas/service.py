@@ -28,6 +28,10 @@ class AlumnoInvalidoError(Exception):
     """El manager o alguno de los jugadores no existe o no pertenece a la clase."""
 
 
+class ManagerDebeIncluirseError(Exception):
+    """El manager debe incluirse a sí mismo entre los 5 jugadores fichados."""
+
+
 class PresupuestoExcedidoError(Exception):
     """La suma de valores de los 5 jugadores supera el presupuesto del manager."""
 
@@ -38,6 +42,10 @@ def excede_presupuesto(valores: list[int], presupuesto_manager: int) -> bool:
 
 def esta_dentro_de_ventana(ahora: datetime, apertura: datetime, cierre: datetime) -> bool:
     return apertura <= ahora <= cierre
+
+
+def manager_esta_incluido(manager_id: int, jugadores_ids: list[int]) -> bool:
+    return manager_id in jugadores_ids
 
 
 async def _cargar_y_validar_jugadores(pool: asyncmy.Pool, clase_id: int,
@@ -51,17 +59,22 @@ async def _cargar_y_validar_jugadores(pool: asyncmy.Pool, clase_id: int,
     return jugadores
 
 
-async def fichar_plantilla(pool: asyncmy.Pool, clase_id: int, datos: PlantillaCreate,
+async def fichar_plantilla(pool: asyncmy.Pool, clase_id: int, manager_id: int, datos: PlantillaCreate,
                             ahora: datetime | None = None) -> int:
     """Crea la plantilla de un manager para una jornada, o la reemplaza por
     completo si ya tenía una (puede cambiar de opinión mientras la ventana
     de fichajes siga abierta).
 
-    `ahora` solo existe para que las pruebas unitarias/de servicio puedan
-    fijar el instante sin depender del reloj real; los endpoints HTTP
-    siempre lo dejan en None, que usa `datetime.now()`.
+    `manager_id` viaja siempre por fuera del payload (lo resuelve el
+    router a partir de la sesión del alumno autenticado): nunca se acepta
+    que alguien finche "en nombre" de otro. `ahora` solo existe para que
+    las pruebas de servicio puedan fijar el instante sin depender del
+    reloj real; los endpoints HTTP siempre lo dejan en None.
     """
     ahora = ahora or datetime.now()
+
+    if not manager_esta_incluido(manager_id, datos.jugadores_ids):
+        raise ManagerDebeIncluirseError("Debes incluirte a ti mismo entre los 5 jugadores.")
 
     jornada = await jornadas_repository.obtener_por_id(pool, datos.jornada_id)
     if jornada is None or jornada["clase_id"] != clase_id:
@@ -74,11 +87,6 @@ async def fichar_plantilla(pool: asyncmy.Pool, clase_id: int, datos: PlantillaCr
         )
 
     clase = await clases_repository.obtener_por_id(pool, clase_id)
-
-    manager = await alumnos_repository.obtener_por_id(pool, datos.manager_id)
-    if manager is None or manager["clase_id"] != clase_id:
-        raise AlumnoInvalidoError(f"El manager {datos.manager_id} no pertenece a esta clase.")
-
     jugadores = await _cargar_y_validar_jugadores(pool, clase_id, datos.jugadores_ids)
     valores = [j["valor_actual"] for j in jugadores]
 
@@ -88,14 +96,14 @@ async def fichar_plantilla(pool: asyncmy.Pool, clase_id: int, datos: PlantillaCr
         )
 
     jugadores_con_valor = [(j["id"], j["valor_actual"]) for j in jugadores]
-    existente = await repository.obtener_por_jornada_y_manager(pool, datos.jornada_id, datos.manager_id)
+    existente = await repository.obtener_por_jornada_y_manager(pool, datos.jornada_id, manager_id)
 
     if existente is not None:
         await repository.reemplazar_jugadores(pool, existente["id"], datos.capitan_id, jugadores_con_valor)
         return existente["id"]
 
     return await repository.crear(
-        pool, datos.jornada_id, datos.manager_id, datos.capitan_id,
+        pool, datos.jornada_id, manager_id, datos.capitan_id,
         jugadores_con_valor, generada_automaticamente=False,
     )
 

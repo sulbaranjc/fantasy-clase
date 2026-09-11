@@ -1,17 +1,17 @@
 """Modelos Pydantic del módulo plantillas (única fuente de verdad de
 validación de entrada).
 
-Las reglas de FORMA de una plantilla (5 jugadores distintos, el capitán y
-el propio manager deben estar entre esos 5) no dependen de la base de
-datos y se validan aquí. Las reglas que sí requieren datos reales
-(pertenencia a la clase, presupuesto) viven en `service.py`.
+`manager_id` no forma parte de la entrada: quien ficha es siempre el
+alumno autenticado (nunca se acepta que un alumno finche "en nombre" de
+otro), así que el router lo toma de la sesión, no del payload. Por eso la
+regla "el manager debe incluirse a sí mismo entre los 5" se valida en
+`service.py` (ahí es donde se conoce el manager real), no aquí.
 """
 from pydantic import BaseModel, Field, model_validator
 
 
 class PlantillaCreate(BaseModel):
     jornada_id: int
-    manager_id: int
     jugadores_ids: list[int] = Field(min_length=5, max_length=5)
     capitan_id: int
 
@@ -21,8 +21,6 @@ class PlantillaCreate(BaseModel):
             raise ValueError("Los 5 jugadores deben ser distintos: no se permite fichar dos veces al mismo.")
         if self.capitan_id not in self.jugadores_ids:
             raise ValueError("El capitán debe ser uno de los 5 jugadores fichados.")
-        if self.manager_id not in self.jugadores_ids:
-            raise ValueError("El manager debe incluirse a sí mismo entre los 5 jugadores.")
         return self
 
 

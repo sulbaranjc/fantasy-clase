@@ -67,9 +67,10 @@
         return;
       }
 
+      // manager_id no se envía: el servidor ficha siempre en nombre del
+      // alumno de la sesión, nunca del que indique el cliente.
       const payload = {
         jornada_id: Number(formulario.dataset.jornadaId),
-        manager_id: managerId,
         jugadores_ids: idsMarcados,
         capitan_id: Number(capitanMarcado.value),
       };
