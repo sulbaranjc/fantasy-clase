@@ -1,0 +1,70 @@
+{% extends "base.html" %}
+{% block titulo %}Mis clases{% endblock %}
+{% block contenido %}
+  <h1 class="h3 mb-4">Mis clases</h1>
+
+  <div class="table-responsive mb-5">
+    <table class="table table-striped align-middle">
+      <thead>
+        <tr>
+          <th>Nombre</th>
+          <th>Inicio</th>
+          <th>Fin</th>
+          <th class="text-end">Presupuesto manager</th>
+          <th>Estado</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for clase in clases %}
+        <tr>
+          <td>{{ clase.nombre }}</td>
+          <td>{{ clase.fecha_inicio }}</td>
+          <td>{{ clase.fecha_fin }}</td>
+          <td class="text-end">{{ clase.presupuesto_manager }}</td>
+          <td>
+            {% if clase.activa %}
+              <span class="badge text-bg-success">Activa</span>
+            {% else %}
+              <span class="badge text-bg-secondary">Cerrada</span>
+            {% endif %}
+          </td>
+        </tr>
+        {% else %}
+        <tr><td colspan="5" class="text-center text-muted">Todavía no has creado ninguna clase.</td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+
+  <h2 class="h5 mb-3">Nueva clase</h2>
+  <div id="alerta-nueva-clase" class="alert alert-danger d-none" role="alert"></div>
+  <form class="necesita-validacion row g-3" novalidate id="form-nueva-clase"
+        action="/clases?profesor_id={{ profesor_id }}">
+    <div class="col-md-6">
+      <label class="form-label" for="nombre">Nombre de la clase</label>
+      <input class="form-control" id="nombre" name="nombre" required maxlength="120">
+      <div class="invalid-feedback">Indica un nombre para la clase.</div>
+    </div>
+    <div class="col-md-3">
+      <label class="form-label" for="fecha_inicio">Fecha de inicio</label>
+      <input class="form-control" type="date" id="fecha_inicio" name="fecha_inicio" required>
+      <div class="invalid-feedback">Indica la fecha de inicio.</div>
+    </div>
+    <div class="col-md-3">
+      <label class="form-label" for="fecha_fin">Fecha de fin</label>
+      <input class="form-control" type="date" id="fecha_fin" name="fecha_fin" required>
+      <div class="invalid-feedback">Indica la fecha de fin.</div>
+    </div>
+    <div class="col-md-3">
+      <label class="form-label" for="presupuesto_manager">Presupuesto de manager</label>
+      <input class="form-control" type="number" id="presupuesto_manager" name="presupuesto_manager"
+             value="120" min="1" required>
+    </div>
+    <div class="col-12">
+      <button class="btn btn-primary" type="submit">Crear clase</button>
+    </div>
+  </form>
+{% endblock %}
+{% block scripts %}
+  <script src="/static/js/clases.js"></script>
+{% endblock %}

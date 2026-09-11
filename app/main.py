@@ -14,6 +14,7 @@ from core.database import close_pool, get_pool, init_pool
 from core.logging_config import configurar_logging
 from core.templates import templates
 from modules.alumnos.router import router as alumnos_router
+from modules.clases.router import router as clases_router
 
 configurar_logging()
 logger = logging.getLogger("fantasy_clase")
@@ -36,6 +37,7 @@ app.mount("/static", StaticFiles(directory="static"), name="static")
 # jornadas, plantillas, clasificacion, auth...) se registra aquí conforme
 # se vaya implementando en iteraciones sucesivas.
 app.include_router(alumnos_router)
+app.include_router(clases_router)
 
 
 @app.get("/", response_class=HTMLResponse)
