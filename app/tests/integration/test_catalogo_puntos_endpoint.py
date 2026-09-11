@@ -1,5 +1,10 @@
-"""Pruebas de integración del módulo catalogo_puntos contra MySQL real."""
+"""Pruebas de integración del módulo catalogo_puntos contra MySQL real.
+
+Todo el módulo queda reservado al profesor dueño de la clase (herramienta
+de configuración, no de consulta compartida)."""
 import pytest
+
+from .conftest import login_como_alumno
 
 
 @pytest.mark.asyncio
@@ -51,6 +56,23 @@ async def test_listar_solo_activos_excluye_los_desactivados(cliente, clase_id):
 
 
 @pytest.mark.asyncio
-async def test_obtener_evento_inexistente_devuelve_404(cliente):
+async def test_obtener_evento_inexistente_devuelve_404(cliente, profesor_id):
     respuesta = await cliente.get("/catalogo-puntos/999999")
     assert respuesta.status_code == 404
+
+
+@pytest.mark.asyncio
+async def test_un_alumno_no_puede_ver_ni_crear_en_el_catalogo(cliente, clase_id, alumno_id):
+    await login_como_alumno(cliente, alumno_id)
+
+    listado = await cliente.get("/catalogo-puntos", params={"clase_id": clase_id})
+    creacion = await cliente.post("/catalogo-puntos", params={"clase_id": clase_id}, json={"nombre": "X", "puntos": 1})
+
+    assert listado.status_code == 403
+    assert creacion.status_code == 403
+
+
+@pytest.mark.asyncio
+async def test_requiere_sesion(cliente):
+    respuesta = await cliente.get("/catalogo-puntos", params={"clase_id": 1})
+    assert respuesta.status_code == 401
