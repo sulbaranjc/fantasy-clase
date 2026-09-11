@@ -6,15 +6,19 @@ from datetime import date
 
 import pytest
 
+from core.database import get_pool
+from core.security import hash_password
 from modules.clases import repository as clases_repository
+from modules.profesores import repository as profesores_repository
+
+from .conftest import login_como_alumno
 
 
 @pytest.mark.asyncio
-async def test_listar_alumnos_de_una_clase_inexistente_devuelve_lista_vacia(cliente):
+async def test_listar_alumnos_de_una_clase_inexistente_devuelve_404(cliente, profesor_id):
     respuesta = await cliente.get("/alumnos", params={"clase_id": 999999})
 
-    assert respuesta.status_code == 200
-    assert respuesta.json() == []
+    assert respuesta.status_code == 404
 
 
 @pytest.mark.asyncio
@@ -57,8 +61,6 @@ async def test_no_permite_usuarios_duplicados_en_la_misma_clase(cliente, clase_i
 async def test_no_permite_usuarios_duplicados_entre_clases_distintas(cliente, clase_id, profesor_id):
     # El username es único entre TODAS las clases del profesor (migración
     # 005): el login de alumno no pide seleccionar de qué clase es.
-    from core.database import get_pool
-
     pool = get_pool()
     otra_clase_id = await clases_repository.crear(
         pool, profesor_id=profesor_id, nombre="Otra clase", fecha_inicio=date(2026, 9, 21),
@@ -81,9 +83,70 @@ async def test_no_permite_usuarios_duplicados_entre_clases_distintas(cliente, cl
 
 
 @pytest.mark.asyncio
-async def test_crear_alumno_en_clase_inexistente_devuelve_404(cliente):
+async def test_crear_alumno_en_clase_inexistente_devuelve_404(cliente, profesor_id):
     payload = {"nombre": "Alumno", "username": "alumno_x", "password": "clave1234"}
 
     respuesta = await cliente.post("/alumnos", params={"clase_id": 999999}, json=payload)
 
     assert respuesta.status_code == 404
+
+
+@pytest.mark.asyncio
+async def test_un_alumno_puede_listar_a_sus_compañeros_de_clase(cliente, clase_id, alumno_id):
+    await login_como_alumno(cliente, alumno_id)
+
+    respuesta = await cliente.get("/alumnos", params={"clase_id": clase_id})
+
+    assert respuesta.status_code == 200
+    assert any(a["id"] == alumno_id for a in respuesta.json())
+
+
+@pytest.mark.asyncio
+async def test_un_alumno_no_puede_listar_alumnos_de_otra_clase(cliente, clase_id, alumno_id, profesor_id):
+    pool = get_pool()
+    otra_clase_id = await clases_repository.crear(
+        pool, profesor_id=profesor_id, nombre="Otra clase", fecha_inicio=date(2026, 9, 21),
+        fecha_fin=date(2027, 3, 5), duracion_jornada_dias=14, ventana_fichaje_horas=24,
+        valor_inicial_jugador=20, valor_minimo_jugador=10, factor_recalculo_valor=0.10,
+        presupuesto_manager=120,
+    )
+    await login_como_alumno(cliente, alumno_id)
+
+    respuesta = await cliente.get("/alumnos", params={"clase_id": otra_clase_id})
+
+    assert respuesta.status_code == 403
+
+
+@pytest.mark.asyncio
+async def test_un_alumno_no_puede_dar_de_alta_alumnos(cliente, clase_id, alumno_id):
+    await login_como_alumno(cliente, alumno_id)
+
+    respuesta = await cliente.post(
+        "/alumnos", params={"clase_id": clase_id},
+        json={"nombre": "Otro", "username": "otro_alumno", "password": "clave1234"},
+    )
+
+    assert respuesta.status_code == 403
+
+
+@pytest.mark.asyncio
+async def test_un_profesor_no_puede_ver_alumnos_de_la_clase_de_otro(cliente, clase_id):
+    pool = get_pool()
+    otro_username = f"otro_profesor_test_{clase_id}"
+    otro_id = await profesores_repository.crear(pool, "Otro profesor", otro_username, hash_password("otra-clave-1234"))
+    login = await cliente.post("/auth/profesor/login", json={"username": otro_username, "password": "otra-clave-1234"})
+    assert login.status_code == 200
+
+    try:
+        respuesta = await cliente.get("/alumnos", params={"clase_id": clase_id})
+        assert respuesta.status_code == 404
+    finally:
+        async with pool.acquire() as conn:
+            async with conn.cursor() as cur:
+                await cur.execute("DELETE FROM profesores WHERE id = %s", (otro_id,))
+
+
+@pytest.mark.asyncio
+async def test_requiere_sesion(cliente):
+    respuesta = await cliente.get("/alumnos", params={"clase_id": 1})
+    assert respuesta.status_code == 401
