@@ -1,0 +1,35 @@
+{% extends "base.html" %}
+{% block titulo %}Validación de selección{% endblock %}
+{% block contenido %}
+  <h1 class="h3 mb-1">Validación de selección</h1>
+  <p class="text-muted">Comprueba que, sumando todas las plantillas de todas las jornadas, cada alumno haya sido fichado por algún manager al menos una vez en toda la temporada.</p>
+
+  <div class="table-responsive">
+    <table class="table table-striped align-middle">
+      <thead>
+        <tr>
+          <th>Alumno</th>
+          <th class="text-end">Veces fichado</th>
+          <th>Estado</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for fila in validacion %}
+        <tr>
+          <td>{{ fila.nombre }}</td>
+          <td class="text-end">{{ fila.veces_fichado }}</td>
+          <td>
+            {% if fila.estado == "OK" %}
+              <span class="badge text-bg-success">OK</span>
+            {% else %}
+              <span class="badge text-bg-danger">NO SELECCIONADO</span>
+            {% endif %}
+          </td>
+        </tr>
+        {% else %}
+        <tr><td colspan="3" class="text-center text-muted">Todavía no hay alumnos en esta clase.</td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+{% endblock %}
