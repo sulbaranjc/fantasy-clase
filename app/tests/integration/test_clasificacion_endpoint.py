@@ -102,7 +102,7 @@ async def test_podio_devuelve_los_tres_primeros(cliente, clase_id, jornada_abier
 
 @pytest.mark.asyncio
 async def test_validacion_seleccion_detecta_alumno_no_fichado(
-    cliente, clase_id, jornada_abierta_id, cinco_alumnos_ids, alumno_id
+    cliente, clase_id, jornada_abierta_id, cinco_alumnos_ids, alumno_id, profesor_id
 ):
     # `alumno_id` (fixture) crea un sexto alumno que no participa en ninguna plantilla.
     manager_a = cinco_alumnos_ids[0]
@@ -111,6 +111,7 @@ async def test_validacion_seleccion_detecta_alumno_no_fichado(
         "jornada_id": jornada_abierta_id, "jugadores_ids": cinco_alumnos_ids, "capitan_id": manager_a,
     })
 
+    await login_como_profesor(cliente, profesor_id)
     respuesta = await cliente.get("/clasificacion/validacion-seleccion", params={"clase_id": clase_id})
 
     assert respuesta.status_code == 200
@@ -119,3 +120,27 @@ async def test_validacion_seleccion_detecta_alumno_no_fichado(
         assert por_alumno[id_fichado]["estado"] == "OK"
     assert por_alumno[alumno_id]["estado"] == "NO SELECCIONADO"
     assert por_alumno[alumno_id]["veces_fichado"] == 0
+
+
+@pytest.mark.asyncio
+async def test_un_alumno_puede_ver_la_clasificacion_general_de_su_clase(cliente, clase_id, alumno_id):
+    await login_como_alumno(cliente, alumno_id)
+
+    respuesta = await cliente.get("/clasificacion/general", params={"clase_id": clase_id})
+
+    assert respuesta.status_code == 200
+
+
+@pytest.mark.asyncio
+async def test_un_alumno_no_puede_ver_la_validacion_de_seleccion(cliente, clase_id, alumno_id):
+    await login_como_alumno(cliente, alumno_id)
+
+    respuesta = await cliente.get("/clasificacion/validacion-seleccion", params={"clase_id": clase_id})
+
+    assert respuesta.status_code == 403
+
+
+@pytest.mark.asyncio
+async def test_requiere_sesion(cliente):
+    respuesta = await cliente.get("/clasificacion/general", params={"clase_id": 1})
+    assert respuesta.status_code == 401
