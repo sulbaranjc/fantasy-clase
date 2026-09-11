@@ -19,25 +19,44 @@ from modules.jornadas import repository as jornadas_repository
 from modules.jornadas import service as jornadas_service
 from modules.profesores import repository as profesores_repository
 
+# Contraseñas conocidas fijas para las cuentas de prueba: los tests de
+# endpoints protegidos necesitan poder iniciar sesión de verdad, no solo
+# tener un id. Nunca se usan fuera de la base de datos de pruebas.
+PASSWORD_PROFESOR_PRUEBA = "clave-super-segura"
+PASSWORD_ALUMNOS_PRUEBA = "clave-alumno-1234"
+
 
 @pytest_asyncio.fixture
 async def cliente():
     """Cliente HTTP async contra la app, con su lifespan (pool de MySQL)
-    activo durante todo el test."""
+    activo durante todo el test. Conserva cookies entre peticiones, igual
+    que un navegador, así que un login dentro del test (o en una fixture
+    de la que dependa) deja la sesión activa para el resto de llamadas."""
     async with app.router.lifespan_context(app):
         transport = ASGITransport(app=app)
         async with AsyncClient(transport=transport, base_url="http://test") as client:
             yield client
 
 
+async def login_como_alumno(cliente: AsyncClient, alumno_id: int) -> None:
+    """Cambia la sesión del `cliente` a la de un alumno de prueba ya
+    creado con `PASSWORD_ALUMNOS_PRUEBA` (fixtures `alumno_id` o
+    `cinco_alumnos_ids`). Útil quien vaya a fichar debe ser el propio
+    alumno autenticado, no el profesor con el que arrancó el test."""
+    alumno = await alumnos_repository.obtener_por_id(get_pool(), alumno_id)
+    respuesta = await cliente.post(
+        "/auth/alumno/login", json={"username": alumno["username"], "password": PASSWORD_ALUMNOS_PRUEBA}
+    )
+    assert respuesta.status_code == 200, respuesta.text
+
+
 @pytest_asyncio.fixture
 async def profesor_id(cliente):
-    """Inserta un profesor de prueba directamente en base de datos.
-
-    El módulo `auth` (que expondrá el alta real de profesores) todavía no
-    existe; mientras tanto, los módulos que dependen de un profesor válido
-    (como `clases`) usan esta fixture. Se limpia al terminar el test; la
-    cascada de la base de datos borra también las clases que haya creado.
+    """Inserta un profesor de prueba con una contraseña conocida e inicia
+    sesión con él en el `cliente` compartido: cualquier test que dependa
+    de esta fixture (directa o transitivamente, vía `clase_id` y todo lo
+    que cuelga de ella) ya tiene una sesión de profesor activa sin tener
+    que hacer login explícito.
     """
     pool = get_pool()
     username = f"profesor_test_{uuid.uuid4().hex[:12]}"
@@ -45,9 +64,14 @@ async def profesor_id(cliente):
         async with conn.cursor() as cur:
             await cur.execute(
                 "INSERT INTO profesores (nombre, username, password_hash) VALUES (%s, %s, %s)",
-                ("Profesor de prueba", username, "hash-no-usado-en-pruebas"),
+                ("Profesor de prueba", username, hash_password(PASSWORD_PROFESOR_PRUEBA)),
             )
             nuevo_id = cur.lastrowid
+
+    respuesta = await cliente.post(
+        "/auth/profesor/login", json={"username": username, "password": PASSWORD_PROFESOR_PRUEBA}
+    )
+    assert respuesta.status_code == 200, respuesta.text
 
     yield nuevo_id
 
@@ -89,7 +113,7 @@ async def alumno_id(clase_id):
     pool = get_pool()
     username = f"alumno_test_{uuid.uuid4().hex[:12]}"
     return await alumnos_repository.crear(
-        pool, clase_id, "Alumno de prueba", username, hash_password("clave-no-usada"), 20
+        pool, clase_id, "Alumno de prueba", username, hash_password(PASSWORD_ALUMNOS_PRUEBA), 20
     )
 
 
@@ -138,15 +162,16 @@ async def jornada_abierta_id(clase_id):
 
 @pytest_asyncio.fixture
 async def profesor_con_password(cliente):
-    """Como `profesor_id`, pero con una contraseña real conocida en texto
-    plano, para poder probar el login (esa fixture usa un hash ficticio
-    que no corresponde a ninguna contraseña real)."""
+    """Como `profesor_id`, pero SIN iniciar sesión automáticamente: para
+    los propios tests de auth, que necesitan las credenciales en texto
+    plano y probar ellos mismos el login."""
     pool = get_pool()
     username = f"profesor_login_test_{uuid.uuid4().hex[:12]}"
-    password = "clave-super-segura"
-    nuevo_id = await profesores_repository.crear(pool, "Profesor de login", username, hash_password(password))
+    nuevo_id = await profesores_repository.crear(
+        pool, "Profesor de login", username, hash_password(PASSWORD_PROFESOR_PRUEBA)
+    )
 
-    yield {"id": nuevo_id, "username": username, "password": password}
+    yield {"id": nuevo_id, "username": username, "password": PASSWORD_PROFESOR_PRUEBA}
 
     async with pool.acquire() as conn:
         async with conn.cursor() as cur:
@@ -155,13 +180,15 @@ async def profesor_con_password(cliente):
 
 @pytest_asyncio.fixture
 async def alumno_con_password(clase_id):
-    """Como `alumno_id`, pero con una contraseña real conocida en texto
-    plano, para poder probar el login."""
+    """Como `alumno_id`, pero exponiendo también sus credenciales: para
+    los propios tests de auth, que necesitan probar ellos mismos el login
+    (en vez de partir de una sesión ya iniciada)."""
     pool = get_pool()
     username = f"alumno_login_test_{uuid.uuid4().hex[:12]}"
-    password = "clave-alumno-1234"
-    nuevo_id = await alumnos_repository.crear(pool, clase_id, "Alumno de login", username, hash_password(password), 20)
-    return {"id": nuevo_id, "clase_id": clase_id, "username": username, "password": password}
+    nuevo_id = await alumnos_repository.crear(
+        pool, clase_id, "Alumno de login", username, hash_password(PASSWORD_ALUMNOS_PRUEBA), 20
+    )
+    return {"id": nuevo_id, "clase_id": clase_id, "username": username, "password": PASSWORD_ALUMNOS_PRUEBA}
 
 
 @pytest_asyncio.fixture
@@ -173,7 +200,7 @@ async def cinco_alumnos_ids(clase_id):
     for _ in range(5):
         username = f"jugador_test_{uuid.uuid4().hex[:12]}"
         nuevo_id = await alumnos_repository.crear(
-            pool, clase_id, "Jugador de prueba", username, hash_password("clave-no-usada"), 20
+            pool, clase_id, "Jugador de prueba", username, hash_password(PASSWORD_ALUMNOS_PRUEBA), 20
         )
         ids.append(nuevo_id)
     return ids

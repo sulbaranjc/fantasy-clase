@@ -32,3 +32,17 @@ async def listar_clases_de_profesor(pool: asyncmy.Pool, profesor_id: int) -> lis
 
 async def obtener_clase(pool: asyncmy.Pool, clase_id: int) -> dict | None:
     return await repository.obtener_por_id(pool, clase_id)
+
+
+async def obtener_clase_del_profesor(pool: asyncmy.Pool, clase_id: int, profesor_id: int) -> dict | None:
+    """Como `obtener_clase`, pero None también cuando la clase existe pero
+    pertenece a otro profesor (se trata igual que "no existe": no hay
+    razón para confirmarle a nadie que una clase ajena existe).
+
+    Punto de verificación de propiedad reutilizado por los demás módulos
+    (alumnos, catalogo_puntos, jornadas, eventos, plantillas) antes de
+    dejar operar sobre una clase."""
+    clase = await repository.obtener_por_id(pool, clase_id)
+    if clase is None or clase["profesor_id"] != profesor_id:
+        return None
+    return clase
