@@ -1,5 +1,160 @@
-/* Estilos propios de Fantasy de Clase, encima de Bootstrap 5. */
+/* Estilos propios de Fantasy de Clase, encima de Bootstrap 5.
+   Paleta clara y moderna, pensada para un público joven (19-30 años):
+   fondo claro con acentos vibrantes, tarjetas con relieve (sombra suave
+   que se acentúa al pasar el ratón), tipografía Poppins/Inter. */
+
+:root {
+  --fc-fondo: #F5F3FF;
+  --fc-superficie: #FFFFFF;
+  --fc-texto: #1E1B2E;
+  --fc-texto-suave: #6B6580;
+  --fc-primario: #7C3AED;
+  --fc-primario-oscuro: #6425D0;
+  --fc-primario-claro: #EDE6FD;
+  --fc-secundario: #06B6D4;
+  --fc-exito: #10B981;
+  --fc-alerta: #EF4444;
+  --fc-oro: #F59E0B;
+  --fc-borde: #E9E4FB;
+  --fc-sombra: 0 4px 16px rgba(124, 58, 237, 0.08);
+  --fc-sombra-hover: 0 12px 28px rgba(124, 58, 237, 0.18);
+  --fc-radio: 18px;
+}
 
 body {
-  background-color: #f7f8fa;
+  background-color: var(--fc-fondo);
+  color: var(--fc-texto);
+  font-family: "Inter", system-ui, sans-serif;
+}
+
+h1, h2, h3, h4, h5, .fc-titulo {
+  font-family: "Poppins", "Inter", system-ui, sans-serif;
+  font-weight: 700;
+  letter-spacing: -0.01em;
+}
+
+/* --- Navbar --- */
+.navbar-fc {
+  background: linear-gradient(135deg, var(--fc-primario) 0%, var(--fc-primario-oscuro) 100%);
+  box-shadow: 0 2px 12px rgba(124, 58, 237, 0.25);
+  padding-top: .75rem;
+  padding-bottom: .75rem;
+}
+.navbar-fc .navbar-brand {
+  color: #fff;
+  font-family: "Poppins", sans-serif;
+  font-weight: 700;
+  font-size: 1.25rem;
+}
+.navbar-brand-icono { filter: drop-shadow(0 2px 2px rgba(0,0,0,.15)); }
+.badge-usuario {
+  background: rgba(255,255,255,.18);
+  color: #fff;
+  border-radius: 999px;
+  padding: .4rem .9rem;
+  font-size: .85rem;
+  font-weight: 500;
+}
+.btn-logout {
+  background: rgba(255,255,255,.15);
+  color: #fff;
+  border: 1px solid rgba(255,255,255,.35);
+  border-radius: 999px;
+  font-weight: 500;
+}
+.btn-logout:hover { background: rgba(255,255,255,.3); color: #fff; }
+
+/* --- Botones de marca --- */
+.btn-primary {
+  background-color: var(--fc-primario);
+  border-color: var(--fc-primario);
+}
+.btn-primary:hover, .btn-primary:focus {
+  background-color: var(--fc-primario-oscuro);
+  border-color: var(--fc-primario-oscuro);
+}
+.btn-outline-secondary {
+  border-color: var(--fc-borde);
+  color: var(--fc-texto-suave);
+}
+
+/* --- Tarjetas de módulo (dashboard) --- */
+.tarjeta-modulo {
+  display: block;
+  background: var(--fc-superficie);
+  border: 1px solid var(--fc-borde);
+  border-radius: var(--fc-radio);
+  box-shadow: var(--fc-sombra);
+  padding: 1.75rem 1.5rem;
+  height: 100%;
+  text-decoration: none;
+  color: var(--fc-texto);
+  transition: transform .18s ease, box-shadow .18s ease, border-color .18s ease;
+}
+.tarjeta-modulo:hover {
+  transform: translateY(-6px);
+  box-shadow: var(--fc-sombra-hover);
+  border-color: var(--fc-primario-claro);
+  color: var(--fc-texto);
+}
+.tarjeta-modulo .icono {
+  font-size: 2.4rem;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 3.6rem;
+  height: 3.6rem;
+  border-radius: 16px;
+  background: var(--fc-primario-claro);
+  margin-bottom: 1rem;
+}
+.tarjeta-modulo h3 {
+  font-size: 1.15rem;
+  margin-bottom: .35rem;
+}
+.tarjeta-modulo p {
+  color: var(--fc-texto-suave);
+  font-size: .92rem;
+  margin-bottom: 0;
+}
+
+/* --- Tarjeta de clase (selector del profesor) --- */
+.tarjeta-clase {
+  background: var(--fc-superficie);
+  border: 1px solid var(--fc-borde);
+  border-radius: var(--fc-radio);
+  box-shadow: var(--fc-sombra);
+  padding: 1.5rem;
+  text-decoration: none;
+  color: var(--fc-texto);
+  display: block;
+  transition: transform .18s ease, box-shadow .18s ease;
+}
+.tarjeta-clase:hover {
+  transform: translateY(-4px);
+  box-shadow: var(--fc-sombra-hover);
+  color: var(--fc-texto);
+}
+
+/* --- Hero de bienvenida --- */
+.fc-hero {
+  background: linear-gradient(135deg, var(--fc-primario) 0%, var(--fc-secundario) 100%);
+  border-radius: 24px;
+  color: #fff;
+  padding: 3rem 2rem;
+  box-shadow: var(--fc-sombra-hover);
+}
+.fc-hero .btn-light {
+  font-weight: 600;
+  border-radius: 999px;
+  padding: .6rem 1.6rem;
+}
+
+/* --- Chips de estado --- */
+.badge { border-radius: 999px; font-weight: 500; }
+
+/* --- Tablas --- */
+.table { --bs-table-bg: transparent; }
+.card, .table-responsive {
+  border-radius: var(--fc-radio);
 }

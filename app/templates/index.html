@@ -1,23 +1,95 @@
 {% extends "base.html" %}
 {% block titulo %}Fantasy de Clase{% endblock %}
 {% block contenido %}
-  <div class="text-center py-5">
-    <h1 class="display-5">🏆 Fantasy de Clase</h1>
-    {% if usuario %}
-      <p class="lead">Hola, {{ usuario.nombre }} <span class="text-muted">({{ usuario.tipo }})</span>.</p>
-      <button class="btn btn-outline-secondary btn-sm" id="btn-logout">Cerrar sesión</button>
-    {% else %}
-      <p class="lead text-muted">Todavía no has iniciado sesión.</p>
-      <a class="btn btn-primary btn-sm" href="/auth/vista/login">Iniciar sesión</a>
-    {% endif %}
-    <p class="mt-3"><a class="btn btn-outline-secondary btn-sm" href="/salud">Ver estado del sistema</a></p>
+
+{% if not usuario %}
+  <div class="fc-hero text-center mb-5">
+    <h1 class="display-5 mb-2">🏆 Fantasy de Clase</h1>
+    <p class="lead mb-4">Convierte lo que pasa cada día en tu aula en un fantasy: puntos, plantillas y una clasificación que se juega entre todos.</p>
+    <a class="btn btn-light btn-lg" href="/auth/vista/login">Iniciar sesión</a>
   </div>
-{% endblock %}
-{% block scripts %}
-  <script>
-    document.querySelector("#btn-logout")?.addEventListener("click", async () => {
-      await fetch("/auth/logout", { method: "POST" });
-      window.location.reload();
-    });
-  </script>
+
+{% elif usuario.tipo == "profesor" %}
+  <div class="mb-4">
+    <h1 class="h3 mb-1">Hola, {{ usuario.nombre }} 👋</h1>
+    <p class="text-muted">Elige una clase para gestionarla, o crea una nueva.</p>
+  </div>
+
+  {% if clases %}
+  <div class="row g-3 mb-4">
+    {% for clase in clases %}
+    <div class="col-md-4">
+      <a class="tarjeta-clase" href="/clases/{{ clase.id }}/vista/dashboard">
+        <h3 class="fc-titulo h5 mb-1">📚 {{ clase.nombre }}</h3>
+        <p class="text-muted small mb-2">{{ clase.fecha_inicio }} → {{ clase.fecha_fin }}</p>
+        {% if clase.activa %}
+          <span class="badge text-bg-success">Activa</span>
+        {% else %}
+          <span class="badge text-bg-secondary">Cerrada</span>
+        {% endif %}
+      </a>
+    </div>
+    {% endfor %}
+  </div>
+  {% else %}
+  <div class="tarjeta-modulo text-center mb-4" style="cursor:default;">
+    <div class="icono mx-auto">📚</div>
+    <h3>Todavía no tienes ninguna clase</h3>
+    <p>Crea la primera para empezar a dar de alta alumnos y poner en marcha el fantasy.</p>
+  </div>
+  {% endif %}
+
+  <a class="btn btn-primary" href="/clases/vista/listado">➕ Crear / ver todas mis clases</a>
+
+{% else %}
+  <div class="mb-4">
+    <h1 class="h3 mb-1">Hola, {{ usuario.nombre }} 👋</h1>
+    <p class="text-muted">Esto es lo tuyo esta jornada.</p>
+  </div>
+
+  <div class="row g-3">
+    {% if jornada_activa %}
+    <div class="col-md-6 col-lg-4">
+      <a class="tarjeta-modulo" href="/plantillas/vista/fichar?jornada_id={{ jornada_activa.id }}">
+        <div class="icono">📝</div>
+        <h3>Fichar mi plantilla</h3>
+        <p>La ventana de fichajes de la jornada {{ jornada_activa.numero }} está abierta ahora.</p>
+      </a>
+    </div>
+    {% else %}
+    <div class="col-md-6 col-lg-4">
+      <div class="tarjeta-modulo" style="cursor:default; opacity:.75;">
+        <div class="icono">🔒</div>
+        <h3>Fichajes cerrados</h3>
+        <p>Ahora mismo no hay ninguna ventana de fichajes abierta.</p>
+      </div>
+    </div>
+    {% endif %}
+
+    <div class="col-md-6 col-lg-4">
+      <a class="tarjeta-modulo" href="/clasificacion/vista/general?clase_id={{ usuario.clase_id }}">
+        <div class="icono">🏆</div>
+        <h3>Clasificación</h3>
+        <p>Mira quién manda en tu clase esta temporada.</p>
+      </a>
+    </div>
+
+    <div class="col-md-6 col-lg-4">
+      <a class="tarjeta-modulo" href="/jornadas/vista/listado?clase_id={{ usuario.clase_id }}">
+        <div class="icono">📅</div>
+        <h3>Calendario</h3>
+        <p>Todas las jornadas de la temporada y sus fechas.</p>
+      </a>
+    </div>
+
+    <div class="col-md-6 col-lg-4">
+      <a class="tarjeta-modulo" href="/alumnos/vista/listado?clase_id={{ usuario.clase_id }}">
+        <div class="icono">🧑‍🤝‍🧑</div>
+        <h3>Mis compañeros</h3>
+        <p>Consulta el valor de mercado de cada uno.</p>
+      </a>
+    </div>
+  </div>
+{% endif %}
+
 {% endblock %}

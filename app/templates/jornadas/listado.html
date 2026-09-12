@@ -2,8 +2,8 @@
 {% block titulo %}Calendario de jornadas{% endblock %}
 {% block contenido %}
   <div class="d-flex justify-content-between align-items-center mb-4">
-    <h1 class="h3 mb-0">Calendario de jornadas</h1>
-    {% if es_profesor %}
+    <h1 class="h3 mb-0">📅 Calendario de jornadas</h1>
+    {% if es_profesor and not jornadas %}
     <button class="btn btn-primary" id="btn-generar-calendario"
             data-action="/jornadas/generar?clase_id={{ clase_id }}">
       Generar calendario
@@ -20,9 +20,9 @@
           <th>Jornada</th>
           <th>Inicio</th>
           <th>Fin</th>
-          <th>Apertura fichajes</th>
-          <th>Cierre fichajes</th>
+          <th>Ventana de fichajes</th>
           <th>Estado</th>
+          <th></th>
         </tr>
       </thead>
       <tbody>
@@ -31,13 +31,21 @@
           <td>{{ jornada.numero }}</td>
           <td>{{ jornada.fecha_inicio }}</td>
           <td>{{ jornada.fecha_fin }}</td>
-          <td>{{ jornada.apertura_fichajes }}</td>
-          <td>{{ jornada.cierre_fichajes }}</td>
+          <td class="small text-muted">{{ jornada.apertura_fichajes }} → {{ jornada.cierre_fichajes }}</td>
           <td>
-            {% if jornada.cerrada %}
-              <span class="badge text-bg-secondary">Cerrada</span>
+            {% if jornada.estado_ventana == "abierta" %}
+              <span class="badge text-bg-success">Fichajes abiertos</span>
+            {% elif jornada.estado_ventana == "proxima" %}
+              <span class="badge text-bg-secondary">Próxima</span>
             {% else %}
-              <span class="badge text-bg-success">Abierta</span>
+              <span class="badge text-bg-light text-muted border">Cerrada</span>
+            {% endif %}
+          </td>
+          <td class="text-end">
+            {% if es_profesor %}
+              <a class="btn btn-sm btn-outline-secondary" href="/eventos/vista/por-jornada?jornada_id={{ jornada.id }}&clase_id={{ clase_id }}">Gestionar eventos</a>
+            {% elif jornada.id == jornada_activa_id %}
+              <a class="btn btn-sm btn-primary" href="/plantillas/vista/fichar?jornada_id={{ jornada.id }}">Fichar plantilla</a>
             {% endif %}
           </td>
         </tr>
