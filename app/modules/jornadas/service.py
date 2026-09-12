@@ -77,3 +77,24 @@ async def listar_jornadas(pool: asyncmy.Pool, clase_id: int) -> list[dict]:
 
 async def obtener_jornada(pool: asyncmy.Pool, jornada_id: int) -> dict | None:
     return await repository.obtener_por_id(pool, jornada_id)
+
+
+def obtener_jornada_con_ventana_abierta(jornadas: list[dict], ahora: datetime) -> dict | None:
+    """De una lista de jornadas, la que tiene la ventana de fichajes
+    abierta en el instante `ahora` (o None si ninguna la tiene).
+
+    Función pura: no repite la lógica de negocio de "ventana abierta" del
+    módulo plantillas (esa vive allí, aplicada al fichaje en sí); esta es
+    la versión de solo lectura que usa el dashboard del alumno para saber
+    a qué jornada llevarlo a fichar, sin acoplar jornadas a plantillas.
+    """
+    for jornada in jornadas:
+        if jornada["apertura_fichajes"] <= ahora <= jornada["cierre_fichajes"]:
+            return jornada
+    return None
+
+
+async def obtener_jornada_activa(pool: asyncmy.Pool, clase_id: int, ahora: datetime | None = None) -> dict | None:
+    ahora = ahora or datetime.now()
+    jornadas = await repository.listar_por_clase(pool, clase_id)
+    return obtener_jornada_con_ventana_abierta(jornadas, ahora)

@@ -1,5 +1,7 @@
 """Endpoints del módulo jornadas: reciben la petición HTTP y delegan en
 `service`. Sin lógica de negocio aquí."""
+from datetime import datetime
+
 from fastapi import APIRouter, Depends, HTTPException, Request, status
 from fastapi.responses import HTMLResponse
 import asyncmy
@@ -59,7 +61,28 @@ async def api_obtener_jornada(jornada_id: int, pool: asyncmy.Pool = Depends(get_
 async def vista_listado_jornadas(request: Request, clase_id: int, pool: asyncmy.Pool = Depends(get_pool),
                                   usuario: UsuarioAutenticado = Depends(verificar_acceso_a_clase)):
     jornadas = await service.listar_jornadas(pool, clase_id)
+    jornada_activa_id = None
+    if usuario.tipo == "alumno":
+        jornada_activa = await service.obtener_jornada_activa(pool, clase_id)
+        jornada_activa_id = jornada_activa["id"] if jornada_activa else None
+
+    # El campo `cerrada` de la jornada nunca se actualiza automáticamente
+    # (no hay todavía un cierre de jornada automatizado); el estado real
+    # que le importa a quien mira el calendario es si su ventana de
+    # fichajes ya pasó, está abierta ahora, o todavía no ha llegado.
+    ahora = datetime.now()
+    for jornada in jornadas:
+        if ahora < jornada["apertura_fichajes"]:
+            jornada["estado_ventana"] = "proxima"
+        elif ahora <= jornada["cierre_fichajes"]:
+            jornada["estado_ventana"] = "abierta"
+        else:
+            jornada["estado_ventana"] = "cerrada"
+
     return templates.TemplateResponse(
         request, "jornadas/listado.html",
-        {"jornadas": jornadas, "clase_id": clase_id, "es_profesor": usuario.tipo == "profesor"},
+        {
+            "jornadas": jornadas, "clase_id": clase_id, "es_profesor": usuario.tipo == "profesor",
+            "jornada_activa_id": jornada_activa_id,
+        },
     )

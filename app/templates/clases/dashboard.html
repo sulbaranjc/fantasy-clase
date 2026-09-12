@@ -1,0 +1,51 @@
+{% extends "base.html" %}
+{% block titulo %}{{ clase.nombre }}{% endblock %}
+{% block contenido %}
+  <div class="mb-4">
+    <a href="/" class="text-decoration-none small text-muted">← Todas mis clases</a>
+    <h1 class="h3 mt-1 mb-1">📚 {{ clase.nombre }}</h1>
+    <p class="text-muted mb-0">{{ clase.fecha_inicio }} → {{ clase.fecha_fin }} · Presupuesto de manager: {{ clase.presupuesto_manager }}</p>
+  </div>
+
+  <div class="row g-3">
+    <div class="col-md-6 col-lg-4">
+      <a class="tarjeta-modulo" href="/alumnos/vista/listado?clase_id={{ clase.id }}">
+        <div class="icono">🧑‍🤝‍🧑</div>
+        <h3>Alumnos</h3>
+        <p>Da de alta a tus alumnos y consulta su valor de mercado.</p>
+      </a>
+    </div>
+
+    <div class="col-md-6 col-lg-4">
+      <a class="tarjeta-modulo" href="/catalogo-puntos/vista/listado?clase_id={{ clase.id }}">
+        <div class="icono">🎯</div>
+        <h3>Catálogo de puntos</h3>
+        <p>Define qué eventos puntúan y cuánto valen.</p>
+      </a>
+    </div>
+
+    <div class="col-md-6 col-lg-4">
+      <a class="tarjeta-modulo" href="/jornadas/vista/listado?clase_id={{ clase.id }}">
+        <div class="icono">📅</div>
+        <h3>Calendario y eventos</h3>
+        <p>Genera las jornadas y registra eventos en cada una.</p>
+      </a>
+    </div>
+
+    <div class="col-md-6 col-lg-4">
+      <a class="tarjeta-modulo" href="/clasificacion/vista/general?clase_id={{ clase.id }}">
+        <div class="icono">🏆</div>
+        <h3>Clasificación general</h3>
+        <p>El ranking acumulado de la temporada, con podio.</p>
+      </a>
+    </div>
+
+    <div class="col-md-6 col-lg-4">
+      <a class="tarjeta-modulo" href="/clasificacion/vista/validacion-seleccion?clase_id={{ clase.id }}">
+        <div class="icono">✅</div>
+        <h3>Validación de selección</h3>
+        <p>Comprueba que todos los alumnos hayan sido fichados alguna vez.</p>
+      </a>
+    </div>
+  </div>
+{% endblock %}

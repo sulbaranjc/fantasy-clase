@@ -15,12 +15,15 @@ from core.logging_config import configurar_logging
 from core.templates import templates
 from modules.alumnos.router import router as alumnos_router
 from modules.auth.dependencies import obtener_usuario_actual_opcional
+from modules.auth.middleware import UsuarioActualMiddleware
 from modules.auth.router import router as auth_router
 from modules.auth.schemas import UsuarioAutenticado
 from modules.catalogo_puntos.router import router as catalogo_puntos_router
 from modules.clasificacion.router import router as clasificacion_router
+from modules.clases import service as clases_service
 from modules.clases.router import router as clases_router
 from modules.eventos.router import router as eventos_router
+from modules.jornadas import service as jornadas_service
 from modules.jornadas.router import router as jornadas_router
 from modules.plantillas.router import router as plantillas_router
 
@@ -39,6 +42,8 @@ async def lifespan(app: FastAPI):
 
 app = FastAPI(title="Fantasy de Clase", lifespan=lifespan)
 
+app.add_middleware(UsuarioActualMiddleware)
+
 app.mount("/static", StaticFiles(directory="static"), name="static")
 
 # Routers de módulos de negocio. Cada módulo nuevo (clases, eventos,
@@ -55,8 +60,19 @@ app.include_router(plantillas_router)
 
 
 @app.get("/", response_class=HTMLResponse)
-async def home(request: Request, usuario: UsuarioAutenticado | None = Depends(obtener_usuario_actual_opcional)):
-    return templates.TemplateResponse(request, "index.html", {"usuario": usuario})
+async def home(request: Request, pool=Depends(get_pool),
+                usuario: UsuarioAutenticado | None = Depends(obtener_usuario_actual_opcional)):
+    """Portada: sin sesión es una invitación a entrar; con sesión es el
+    panel de navegación (dashboard) hacia el resto de módulos, distinto
+    para profesor (elige entre sus clases) y alumno (va directo a la suya)."""
+    contexto = {"usuario": usuario}
+
+    if usuario is not None and usuario.tipo == "profesor":
+        contexto["clases"] = await clases_service.listar_clases_de_profesor(pool, usuario.id)
+    elif usuario is not None and usuario.tipo == "alumno":
+        contexto["jornada_activa"] = await jornadas_service.obtener_jornada_activa(pool, usuario.clase_id)
+
+    return templates.TemplateResponse(request, "index.html", contexto)
 
 
 @app.get("/salud")

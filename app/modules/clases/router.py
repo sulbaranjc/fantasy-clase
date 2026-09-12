@@ -13,6 +13,7 @@ from core.templates import templates
 from modules.auth.dependencies import requiere_profesor
 from modules.auth.schemas import UsuarioAutenticado
 from modules.clases import service
+from modules.clases.dependencies import verificar_profesor_dueno_de_clase
 from modules.clases.schemas import ClaseCreate, ClaseOut
 
 router = APIRouter(prefix="/clases", tags=["clases"])
@@ -45,3 +46,13 @@ async def vista_listado_clases(request: Request, pool: asyncmy.Pool = Depends(ge
                                 profesor: UsuarioAutenticado = Depends(requiere_profesor)):
     clases = await service.listar_clases_de_profesor(pool, profesor.id)
     return templates.TemplateResponse(request, "clases/listado.html", {"clases": clases})
+
+
+@router.get("/{clase_id}/vista/dashboard", response_class=HTMLResponse)
+async def vista_dashboard_clase(request: Request, clase_id: int, pool: asyncmy.Pool = Depends(get_pool),
+                                 _=Depends(verificar_profesor_dueno_de_clase)):
+    """Panel de navegación de una clase concreta: desde aquí el profesor
+    entra a cada módulo (alumnos, catálogo, calendario, clasificación...)
+    ya con la clase resuelta."""
+    clase = await service.obtener_clase(pool, clase_id)
+    return templates.TemplateResponse(request, "clases/dashboard.html", {"clase": clase})
