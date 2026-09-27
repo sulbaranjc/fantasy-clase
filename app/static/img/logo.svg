@@ -1,0 +1,22 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" role="img" aria-label="Class Fantasy">
+  <defs>
+    <linearGradient id="cf-gradiente" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#7C3AED"/>
+      <stop offset="100%" stop-color="#06B6D4"/>
+    </linearGradient>
+  </defs>
+
+  <!-- Asas del trofeo -->
+  <path d="M18 14 C8 14 8 28 18 30" fill="none" stroke="url(#cf-gradiente)" stroke-width="3.5" stroke-linecap="round"/>
+  <path d="M46 14 C56 14 56 28 46 30" fill="none" stroke="url(#cf-gradiente)" stroke-width="3.5" stroke-linecap="round"/>
+
+  <!-- Copa -->
+  <path d="M18 12 H46 V24 C46 33 39.5 39 32 39 C24.5 39 18 33 18 24 Z" fill="url(#cf-gradiente)"/>
+
+  <!-- Estrella -->
+  <path d="M32 19 L34 24 L39.5 24.5 L35.3 28 L36.6 33.3 L32 30.4 L27.4 33.3 L28.7 28 L24.5 24.5 L30 24 Z" fill="#F5F3FF"/>
+
+  <!-- Pie -->
+  <rect x="29" y="39" width="6" height="8" fill="url(#cf-gradiente)"/>
+  <rect x="21" y="47" width="22" height="5" rx="2.5" fill="url(#cf-gradiente)"/>
+</svg>
