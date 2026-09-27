@@ -44,6 +44,32 @@ async def obtener_jugadores(pool: asyncmy.Pool, plantilla_id: int) -> list[dict]
             return await cur.fetchall()
 
 
+async def contar_managers_que_fichan_en_jornada(pool: asyncmy.Pool, jornada_id: int, jugador_id: int,
+                                                 excluir_plantilla_id: int | None = None) -> int:
+    """Cuántos managers DISTINTOS tienen a `jugador_id` fichado en alguna
+    plantilla de esa jornada. `excluir_plantilla_id` deja fuera la propia
+    plantilla que se esté reemplazando, para que un manager pueda volver
+    a guardar la suya sin contar contra el límite de sí mismo."""
+    condicion_exclusion = "AND p.id != %s" if excluir_plantilla_id is not None else ""
+    parametros = [jornada_id, jugador_id]
+    if excluir_plantilla_id is not None:
+        parametros.append(excluir_plantilla_id)
+
+    async with pool.acquire() as conn:
+        async with conn.cursor() as cur:
+            await cur.execute(
+                f"""
+                SELECT COUNT(DISTINCT p.manager_id)
+                FROM plantilla_jugadores pj
+                JOIN plantillas p ON p.id = pj.plantilla_id
+                WHERE p.jornada_id = %s AND pj.jugador_id = %s {condicion_exclusion}
+                """,
+                parametros,
+            )
+            (total,) = await cur.fetchone()
+            return total
+
+
 async def crear(pool: asyncmy.Pool, jornada_id: int, manager_id: int, capitan_id: int,
                  jugadores_con_valor: list[tuple[int, int]], generada_automaticamente: bool) -> int:
     async with pool.acquire() as conn:

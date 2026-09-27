@@ -1,7 +1,12 @@
 """Pruebas unitarias de las funciones puras de `plantillas/service.py`."""
 from datetime import datetime, timedelta
 
-from modules.plantillas.service import esta_dentro_de_ventana, excede_presupuesto, manager_esta_incluido
+from modules.plantillas.service import (
+    esta_dentro_de_ventana,
+    excede_limite_de_equipos,
+    excede_presupuesto,
+    manager_esta_incluido,
+)
 
 
 def test_excede_presupuesto_cuando_la_suma_supera_el_limite():
@@ -48,3 +53,17 @@ def test_manager_incluido_entre_los_jugadores():
 
 def test_manager_no_incluido_entre_los_jugadores():
     assert manager_esta_incluido(9, [1, 2, 3, 4, 5]) is False
+
+
+def test_no_excede_el_limite_cuando_aun_queda_hueco():
+    # 5 managers ya lo tienen fichado; con el actual serían 6, justo el límite.
+    assert excede_limite_de_equipos(veces_fichado=5, limite=6) is False
+
+
+def test_excede_el_limite_cuando_ya_esta_completo():
+    # 6 managers ya lo tienen fichado; con el actual serían 7, supera el límite.
+    assert excede_limite_de_equipos(veces_fichado=6, limite=6) is True
+
+
+def test_no_excede_el_limite_sin_nadie_mas_fichandolo():
+    assert excede_limite_de_equipos(veces_fichado=0, limite=1) is False
