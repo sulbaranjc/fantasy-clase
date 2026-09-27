@@ -8,7 +8,7 @@ import asyncmy
 
 from core.database import get_pool
 from core.templates import templates
-from modules.auth.dependencies import obtener_usuario_actual
+from modules.auth.dependencies import obtener_usuario_actual, requiere_profesor
 from modules.auth.schemas import UsuarioAutenticado
 from modules.clases import service as clases_service
 from modules.clases.dependencies import verificar_acceso_a_clase, verificar_profesor_dueno_de_clase
@@ -34,6 +34,18 @@ async def _verificar_acceso_a_jornada(pool: asyncmy.Pool, jornada_id: int,
     return jornada
 
 
+async def _verificar_jornada_del_profesor(pool: asyncmy.Pool, jornada_id: int, profesor_id: int) -> dict:
+    """Como `_verificar_acceso_a_jornada`, pero solo para el profesor
+    dueño: usada por las acciones administrativas (abrir/cerrar fichajes
+    a mano), que un alumno nunca debe poder disparar."""
+    jornada = await service.obtener_jornada(pool, jornada_id)
+    if jornada is None:
+        raise HTTPException(status_code=404, detail="Jornada no encontrada")
+    if await clases_service.obtener_clase_del_profesor(pool, jornada["clase_id"], profesor_id) is None:
+        raise HTTPException(status_code=404, detail="Jornada no encontrada")
+    return jornada
+
+
 @router.post("/generar", response_model=list[JornadaOut], status_code=status.HTTP_201_CREATED)
 async def api_generar_calendario(clase_id: int, pool: asyncmy.Pool = Depends(get_pool),
                                   _=Depends(verificar_profesor_dueno_de_clase)):
@@ -55,6 +67,20 @@ async def api_listar_jornadas(clase_id: int, pool: asyncmy.Pool = Depends(get_po
 async def api_obtener_jornada(jornada_id: int, pool: asyncmy.Pool = Depends(get_pool),
                                usuario: UsuarioAutenticado = Depends(obtener_usuario_actual)):
     return await _verificar_acceso_a_jornada(pool, jornada_id, usuario)
+
+
+@router.post("/{jornada_id}/abrir-fichajes", response_model=JornadaOut)
+async def api_abrir_fichajes(jornada_id: int, pool: asyncmy.Pool = Depends(get_pool),
+                              profesor: UsuarioAutenticado = Depends(requiere_profesor)):
+    await _verificar_jornada_del_profesor(pool, jornada_id, profesor.id)
+    return await service.abrir_fichajes_ahora(pool, jornada_id)
+
+
+@router.post("/{jornada_id}/cerrar-fichajes", response_model=JornadaOut)
+async def api_cerrar_fichajes(jornada_id: int, pool: asyncmy.Pool = Depends(get_pool),
+                               profesor: UsuarioAutenticado = Depends(requiere_profesor)):
+    await _verificar_jornada_del_profesor(pool, jornada_id, profesor.id)
+    return await service.cerrar_fichajes_ahora(pool, jornada_id)
 
 
 @router.get("/vista/listado", response_class=HTMLResponse)

@@ -47,3 +47,13 @@ async def obtener_por_id(pool: asyncmy.Pool, jornada_id: int) -> dict | None:
         async with conn.cursor(asyncmy.cursors.DictCursor) as cur:
             await cur.execute(f"SELECT {_COLUMNAS} FROM jornadas WHERE id = %s", (jornada_id,))
             return await cur.fetchone()
+
+
+async def actualizar_ventana_fichajes(pool: asyncmy.Pool, jornada_id: int,
+                                       apertura_fichajes, cierre_fichajes) -> None:
+    async with pool.acquire() as conn:
+        async with conn.cursor() as cur:
+            await cur.execute(
+                "UPDATE jornadas SET apertura_fichajes = %s, cierre_fichajes = %s WHERE id = %s",
+                (apertura_fichajes, cierre_fichajes, jornada_id),
+            )

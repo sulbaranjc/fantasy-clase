@@ -1,4 +1,6 @@
 """Pruebas de integración del módulo jornadas contra MySQL real."""
+from datetime import datetime
+
 import pytest
 
 from .conftest import login_como_alumno
@@ -61,6 +63,55 @@ async def test_un_alumno_no_puede_generar_el_calendario(cliente, clase_id, alumn
     respuesta = await cliente.post("/jornadas/generar", params={"clase_id": clase_id})
 
     assert respuesta.status_code == 403
+
+
+@pytest.mark.asyncio
+async def test_abrir_fichajes_ahora_fuerza_la_ventana_abierta(cliente, clase_id, jornada_id, cinco_alumnos_ids):
+    # `jornada_id` usa el calendario real (temporada 2026/2027): su ventana
+    # calculada todavía no ha llegado en el momento de correr las pruebas.
+    respuesta = await cliente.post(f"/jornadas/{jornada_id}/abrir-fichajes")
+
+    assert respuesta.status_code == 200
+    jornada = respuesta.json()
+    apertura = datetime.fromisoformat(jornada["apertura_fichajes"])
+    cierre = datetime.fromisoformat(jornada["cierre_fichajes"])
+    assert abs((apertura - datetime.now()).total_seconds()) < 10
+    assert cierre > apertura
+
+    # Ahora sí se puede fichar: la ventana quedó forzada al instante actual.
+    manager_id = cinco_alumnos_ids[0]
+    await login_como_alumno(cliente, manager_id)
+    fichaje = await cliente.post("/plantillas", json={
+        "jornada_id": jornada_id, "jugadores_ids": cinco_alumnos_ids, "capitan_id": manager_id,
+    })
+    assert fichaje.status_code == 201
+
+
+@pytest.mark.asyncio
+async def test_cerrar_fichajes_ahora_impide_fichar(cliente, clase_id, jornada_abierta_id, cinco_alumnos_ids):
+    respuesta = await cliente.post(f"/jornadas/{jornada_abierta_id}/cerrar-fichajes")
+
+    assert respuesta.status_code == 200
+    cierre = datetime.fromisoformat(respuesta.json()["cierre_fichajes"])
+    assert cierre <= datetime.now()
+
+    manager_id = cinco_alumnos_ids[0]
+    await login_como_alumno(cliente, manager_id)
+    fichaje = await cliente.post("/plantillas", json={
+        "jornada_id": jornada_abierta_id, "jugadores_ids": cinco_alumnos_ids, "capitan_id": manager_id,
+    })
+    assert fichaje.status_code == 422
+
+
+@pytest.mark.asyncio
+async def test_un_alumno_no_puede_abrir_ni_cerrar_fichajes(cliente, clase_id, jornada_id, alumno_id):
+    await login_como_alumno(cliente, alumno_id)
+
+    abrir = await cliente.post(f"/jornadas/{jornada_id}/abrir-fichajes")
+    cerrar = await cliente.post(f"/jornadas/{jornada_id}/cerrar-fichajes")
+
+    assert abrir.status_code == 403
+    assert cerrar.status_code == 403
 
 
 @pytest.mark.asyncio

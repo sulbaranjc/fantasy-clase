@@ -98,3 +98,35 @@ async def obtener_jornada_activa(pool: asyncmy.Pool, clase_id: int, ahora: datet
     ahora = ahora or datetime.now()
     jornadas = await repository.listar_por_clase(pool, clase_id)
     return obtener_jornada_con_ventana_abierta(jornadas, ahora)
+
+
+async def abrir_fichajes_ahora(pool: asyncmy.Pool, jornada_id: int, ahora: datetime | None = None) -> dict:
+    """Petición de Álvaro: poder abrir el mercado de fichajes él mismo, en
+    clase, en vez de depender solo de la fecha calculada al generar el
+    calendario. Sobrescribe apertura_fichajes con el instante `ahora` y
+    extiende el cierre `ventana_fichaje_horas` (de la clase) desde ese
+    momento, para que la ventana quede coherente aunque la calculada ya
+    hubiera pasado o todavía no hubiera llegado.
+
+    Asume que `jornada_id` ya fue validada por el router (existe y su
+    clase pertenece al profesor que la abre), igual que el resto de
+    funciones de este módulo que reciben un id ya resuelto."""
+    # Se truncan los microsegundos: la columna DATETIME de MySQL no
+    # guarda fracción de segundo y REDONDEA al guardar, lo que podía dejar
+    # el valor guardado unos milisegundos por delante del reloj real y
+    # bloquear un fichaje hecho justo después de abrir la ventana.
+    ahora = (ahora or datetime.now()).replace(microsecond=0)
+    jornada = await repository.obtener_por_id(pool, jornada_id)
+    clase = await clases_repository.obtener_por_id(pool, jornada["clase_id"])
+    nuevo_cierre = ahora + timedelta(hours=clase["ventana_fichaje_horas"])
+    await repository.actualizar_ventana_fichajes(pool, jornada_id, ahora, nuevo_cierre)
+    return await repository.obtener_por_id(pool, jornada_id)
+
+
+async def cerrar_fichajes_ahora(pool: asyncmy.Pool, jornada_id: int, ahora: datetime | None = None) -> dict:
+    """Contraparte de `abrir_fichajes_ahora`: fuerza el cierre inmediato de
+    la ventana de fichajes, sea cual sea la fecha de cierre calculada."""
+    ahora = (ahora or datetime.now()).replace(microsecond=0)
+    jornada = await repository.obtener_por_id(pool, jornada_id)
+    await repository.actualizar_ventana_fichajes(pool, jornada_id, jornada["apertura_fichajes"], ahora)
+    return await repository.obtener_por_id(pool, jornada_id)
