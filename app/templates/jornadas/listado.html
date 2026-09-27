@@ -41,9 +41,11 @@
               <span class="badge text-bg-light text-muted border">Cerrada</span>
             {% endif %}
           </td>
-          <td class="text-end">
+          <td class="text-end text-nowrap">
             {% if es_profesor %}
               <a class="btn btn-sm btn-outline-secondary" href="/eventos/vista/por-jornada?jornada_id={{ jornada.id }}&clase_id={{ clase_id }}">Gestionar eventos</a>
+              <button class="btn btn-sm btn-outline-success btn-abrir-fichajes" data-jornada-id="{{ jornada.id }}">Abrir ahora</button>
+              <button class="btn btn-sm btn-outline-danger btn-cerrar-fichajes" data-jornada-id="{{ jornada.id }}">Cerrar ahora</button>
             {% elif jornada.id == jornada_activa_id %}
               <a class="btn btn-sm btn-primary" href="/plantillas/vista/fichar?jornada_id={{ jornada.id }}">Fichar plantilla</a>
             {% endif %}
