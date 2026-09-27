@@ -47,6 +47,13 @@ h1, h2, h3, h4, h5, .fc-titulo {
   font-size: 1.25rem;
 }
 .navbar-brand-icono { filter: drop-shadow(0 2px 2px rgba(0,0,0,.15)); }
+.navbar-logo {
+  height: 32px;
+  width: auto;
+  margin-right: .5rem;
+  vertical-align: middle;
+  filter: drop-shadow(0 2px 2px rgba(0,0,0,.15));
+}
 .badge-usuario {
   background: rgba(255,255,255,.18);
   color: #fff;

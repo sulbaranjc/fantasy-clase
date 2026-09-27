@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>{% block titulo %}Fantasy de Clase{% endblock %}</title>
+  <title>{% block titulo %}Class Fantasy{% endblock %}</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@600;700;800&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
@@ -14,7 +14,8 @@
   <nav class="navbar navbar-expand-md navbar-fc">
     <div class="container">
       <a class="navbar-brand" href="/">
-        <span class="navbar-brand-icono">🏆</span> Fantasy de Clase
+        <img src="/static/img/logo.png" alt="" class="navbar-logo"
+             onerror="this.replaceWith(document.createTextNode('🏆 '))">Class Fantasy
       </a>
       {% if request.state.usuario %}
       <div class="d-flex align-items-center gap-2 ms-auto">
@@ -33,7 +34,7 @@
   </main>
 
   <footer class="text-center text-muted py-3 small">
-    Fantasy de Clase
+    Class Fantasy
   </footer>
 
   <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
