@@ -14,7 +14,7 @@ from modules.auth.dependencies import requiere_profesor
 from modules.auth.schemas import UsuarioAutenticado
 from modules.clases import service
 from modules.clases.dependencies import verificar_profesor_dueno_de_clase
-from modules.clases.schemas import ClaseCreate, ClaseOut
+from modules.clases.schemas import ClaseCreate, ClaseOut, ClaseUpdate
 
 router = APIRouter(prefix="/clases", tags=["clases"])
 
@@ -39,6 +39,15 @@ async def api_obtener_clase(clase_id: int, pool: asyncmy.Pool = Depends(get_pool
     if clase is None:
         raise HTTPException(status_code=404, detail="Clase no encontrada")
     return clase
+
+
+@router.put("/{clase_id}", response_model=ClaseOut)
+async def api_actualizar_clase(clase_id: int, datos: ClaseUpdate, pool: asyncmy.Pool = Depends(get_pool),
+                                profesor: UsuarioAutenticado = Depends(requiere_profesor)):
+    if await service.obtener_clase_del_profesor(pool, clase_id, profesor.id) is None:
+        raise HTTPException(status_code=404, detail="Clase no encontrada")
+    await service.actualizar_clase(pool, clase_id, datos)
+    return await service.obtener_clase(pool, clase_id)
 
 
 @router.get("/vista/listado", response_class=HTMLResponse)

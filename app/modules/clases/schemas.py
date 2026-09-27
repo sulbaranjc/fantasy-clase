@@ -1,5 +1,5 @@
-"""Modelos Pydantic del módulo clases (única fuente de verdad de validación
-de entrada)."""
+"""Modelos Pydantic del módulo clases (única fuente de verdad de
+validación de entrada)."""
 from datetime import date
 
 from pydantic import BaseModel, Field, model_validator
@@ -15,6 +15,7 @@ class ClaseCreate(BaseModel):
     valor_minimo_jugador: int = Field(default=10, ge=0)
     factor_recalculo_valor: float = Field(default=0.10, ge=0, le=1)
     presupuesto_manager: int = Field(default=120, ge=1)
+    limite_equipos_por_jugador: int = Field(default=6, ge=1)
 
     @model_validator(mode="after")
     def validar_fechas_y_valores(self) -> "ClaseCreate":
@@ -23,6 +24,16 @@ class ClaseCreate(BaseModel):
         if self.valor_minimo_jugador > self.valor_inicial_jugador:
             raise ValueError("El valor mínimo no puede ser mayor que el valor inicial del jugador.")
         return self
+
+
+class ClaseUpdate(BaseModel):
+    """Parámetros que Álvaro pidió poder ajustar después de crear la clase
+    (antes eran fijos): el presupuesto de manager y el límite de equipos
+    por jugador. Se aplican solo hacia adelante — no revalidan
+    retroactivamente plantillas ya fichadas, igual que el resto del
+    proyecto trata `valor_al_fichar` como una foto fija del momento."""
+    presupuesto_manager: int = Field(ge=1)
+    limite_equipos_por_jugador: int = Field(ge=1)
 
 
 class ClaseOut(BaseModel):
@@ -37,4 +48,5 @@ class ClaseOut(BaseModel):
     valor_minimo_jugador: int
     factor_recalculo_valor: float
     presupuesto_manager: int
+    limite_equipos_por_jugador: int
     activa: bool

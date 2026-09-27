@@ -4,7 +4,7 @@
   <div class="mb-4">
     <a href="/" class="text-decoration-none small text-muted">← Todas mis clases</a>
     <h1 class="h3 mt-1 mb-1">📚 {{ clase.nombre }}</h1>
-    <p class="text-muted mb-0">{{ clase.fecha_inicio }} → {{ clase.fecha_fin }} · Presupuesto de manager: {{ clase.presupuesto_manager }}</p>
+    <p class="text-muted mb-0">{{ clase.fecha_inicio }} → {{ clase.fecha_fin }}</p>
   </div>
 
   <div class="row g-3">
@@ -48,4 +48,29 @@
       </a>
     </div>
   </div>
+
+  <h2 class="h5 mt-5 mb-3">⚙️ Configuración de la clase</h2>
+  <div id="alerta-config-clase" class="alert alert-danger d-none" role="alert"></div>
+  <div id="exito-config-clase" class="alert alert-success d-none" role="alert">Cambios guardados.</div>
+  <form class="necesita-validacion row g-3" novalidate id="form-config-clase"
+        data-action="/clases/{{ clase.id }}">
+    <div class="col-md-4">
+      <label class="form-label" for="presupuesto_manager">Presupuesto de manager</label>
+      <input class="form-control" type="number" id="presupuesto_manager" name="presupuesto_manager"
+             value="{{ clase.presupuesto_manager }}" min="1" required>
+      <div class="form-text">Valor máximo que puede sumar la plantilla de 5 jugadores de cada manager.</div>
+    </div>
+    <div class="col-md-4">
+      <label class="form-label" for="limite_equipos_por_jugador">Máximo de equipos por alumno (por jornada)</label>
+      <input class="form-control" type="number" id="limite_equipos_por_jugador" name="limite_equipos_por_jugador"
+             value="{{ clase.limite_equipos_por_jugador }}" min="1" required>
+      <div class="form-text">En cuántas plantillas distintas puede estar fichado el mismo alumno en una misma jornada.</div>
+    </div>
+    <div class="col-md-4 d-flex align-items-end">
+      <button class="btn btn-primary" type="submit">Guardar cambios</button>
+    </div>
+  </form>
+{% endblock %}
+{% block scripts %}
+  <script src="/static/js/clases.js"></script>
 {% endblock %}

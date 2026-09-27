@@ -81,6 +81,44 @@ async def test_no_permite_ver_una_clase_de_otro_profesor(cliente, clase_id):
 
 
 @pytest.mark.asyncio
+async def test_actualizar_presupuesto_y_limite_de_equipos(cliente, clase_id):
+    respuesta = await cliente.put(
+        f"/clases/{clase_id}",
+        json={"presupuesto_manager": 150, "limite_equipos_por_jugador": 4},
+    )
+
+    assert respuesta.status_code == 200
+    clase = respuesta.json()
+    assert clase["presupuesto_manager"] == 150
+    assert clase["limite_equipos_por_jugador"] == 4
+
+    # Persiste de verdad, no solo en la respuesta.
+    respuesta_detalle = await cliente.get(f"/clases/{clase_id}")
+    assert respuesta_detalle.json()["presupuesto_manager"] == 150
+    assert respuesta_detalle.json()["limite_equipos_por_jugador"] == 4
+
+
+@pytest.mark.asyncio
+async def test_no_permite_editar_una_clase_de_otro_profesor(cliente, clase_id):
+    pool = get_pool()
+    otro_username = f"otro_profesor_edit_{clase_id}"
+    otro_id = await profesores_repository.crear(pool, "Otro profesor", otro_username, hash_password("otra-clave-1234"))
+    login = await cliente.post("/auth/profesor/login", json={"username": otro_username, "password": "otra-clave-1234"})
+    assert login.status_code == 200
+
+    try:
+        respuesta = await cliente.put(
+            f"/clases/{clase_id}",
+            json={"presupuesto_manager": 999, "limite_equipos_por_jugador": 1},
+        )
+        assert respuesta.status_code == 404
+    finally:
+        async with pool.acquire() as conn:
+            async with conn.cursor() as cur:
+                await cur.execute("DELETE FROM profesores WHERE id = %s", (otro_id,))
+
+
+@pytest.mark.asyncio
 async def test_requiere_sesion_de_profesor(cliente):
     respuesta = await cliente.post("/clases", json={
         "nombre": "Sin sesión", "fecha_inicio": "2026-09-21", "fecha_fin": "2027-03-05",

@@ -7,7 +7,7 @@ import asyncmy
 _COLUMNAS = (
     "id, profesor_id, nombre, fecha_inicio, fecha_fin, duracion_jornada_dias, "
     "ventana_fichaje_horas, valor_inicial_jugador, valor_minimo_jugador, "
-    "factor_recalculo_valor, presupuesto_manager, activa"
+    "factor_recalculo_valor, presupuesto_manager, limite_equipos_por_jugador, activa"
 )
 
 
@@ -15,7 +15,7 @@ async def crear(pool: asyncmy.Pool, profesor_id: int, nombre: str,
                  fecha_inicio: date, fecha_fin: date, duracion_jornada_dias: int,
                  ventana_fichaje_horas: int, valor_inicial_jugador: int,
                  valor_minimo_jugador: int, factor_recalculo_valor: float,
-                 presupuesto_manager: int) -> int:
+                 presupuesto_manager: int, limite_equipos_por_jugador: int = 6) -> int:
     async with pool.acquire() as conn:
         async with conn.cursor() as cur:
             await cur.execute(
@@ -24,12 +24,13 @@ async def crear(pool: asyncmy.Pool, profesor_id: int, nombre: str,
                     profesor_id, nombre, fecha_inicio, fecha_fin,
                     duracion_jornada_dias, ventana_fichaje_horas,
                     valor_inicial_jugador, valor_minimo_jugador,
-                    factor_recalculo_valor, presupuesto_manager
-                ) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
+                    factor_recalculo_valor, presupuesto_manager,
+                    limite_equipos_por_jugador
+                ) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
                 """,
                 (profesor_id, nombre, fecha_inicio, fecha_fin, duracion_jornada_dias,
                  ventana_fichaje_horas, valor_inicial_jugador, valor_minimo_jugador,
-                 factor_recalculo_valor, presupuesto_manager),
+                 factor_recalculo_valor, presupuesto_manager, limite_equipos_por_jugador),
             )
             return cur.lastrowid
 
@@ -49,3 +50,13 @@ async def obtener_por_id(pool: asyncmy.Pool, clase_id: int) -> dict | None:
         async with conn.cursor(asyncmy.cursors.DictCursor) as cur:
             await cur.execute(f"SELECT {_COLUMNAS} FROM clases WHERE id = %s", (clase_id,))
             return await cur.fetchone()
+
+
+async def actualizar(pool: asyncmy.Pool, clase_id: int, presupuesto_manager: int,
+                      limite_equipos_por_jugador: int) -> None:
+    async with pool.acquire() as conn:
+        async with conn.cursor() as cur:
+            await cur.execute(
+                "UPDATE clases SET presupuesto_manager = %s, limite_equipos_por_jugador = %s WHERE id = %s",
+                (presupuesto_manager, limite_equipos_por_jugador, clase_id),
+            )
