@@ -1,3 +1,7 @@
+<p align="center">
+  <img src="app/static/img/logo.svg" width="80" alt="Class Fantasy">
+</p>
+
 # Class Fantasy
 
 Aplicación web que migra la lógica de la hoja de cálculo `Fantasy_Clase.xlsx`
