@@ -1,4 +1,4 @@
-# Fantasy de Clase
+# Class Fantasy
 
 Aplicación web que migra la lógica de la hoja de cálculo `Fantasy_Clase.xlsx`
 (fantasy football aplicado al aula) a un sistema multiusuario. Ver el detalle

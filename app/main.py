@@ -40,7 +40,7 @@ async def lifespan(app: FastAPI):
     await close_pool()
 
 
-app = FastAPI(title="Fantasy de Clase", lifespan=lifespan)
+app = FastAPI(title="Class Fantasy", lifespan=lifespan)
 
 app.add_middleware(UsuarioActualMiddleware)
 
