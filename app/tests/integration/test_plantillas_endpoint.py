@@ -3,15 +3,17 @@
 Fichar exige sesión de alumno (`login_como_alumno`); administrar
 (heredar, listar todas las plantillas de una jornada) exige profesor.
 """
+import uuid
 from datetime import datetime, timedelta
 
 import pytest
 
 from core.database import get_pool
+from core.security import hash_password
 from modules.alumnos import repository as alumnos_repository
 from modules.jornadas import repository as jornadas_repository
 
-from .conftest import login_como_alumno, login_como_profesor
+from .conftest import PASSWORD_ALUMNOS_PRUEBA, login_como_alumno, login_como_profesor
 
 
 async def _crear_jornada_abierta(clase_id: int, numero: int) -> int:
@@ -206,6 +208,59 @@ async def test_un_alumno_puede_ver_su_propia_plantilla_pero_no_la_de_otro(
 
     assert propia.status_code == 200 and propia.json() is not None
     assert ajena.status_code == 403
+
+
+@pytest.mark.asyncio
+async def test_limite_de_equipos_por_jugador(cliente, clase_id, jornada_abierta_id, profesor_id):
+    # Grupos de relleno EXCLUSIVOS por manager, para que el único jugador
+    # que se acerca al límite en este test sea `jugador_objetivo`.
+    pool = get_pool()
+
+    async def crear_alumno(nombre):
+        username = f"limite_test_{uuid.uuid4().hex[:10]}"
+        return await alumnos_repository.crear(
+            pool, clase_id, nombre, username, hash_password(PASSWORD_ALUMNOS_PRUEBA), 20
+        )
+
+    jugador_objetivo = await crear_alumno("Jugador Objetivo")
+    manager_1 = await crear_alumno("Manager 1")
+    manager_2 = await crear_alumno("Manager 2")
+    # manager + jugador_objetivo + 3 de relleno = exactamente 5 (regla de forma de la plantilla).
+    relleno_1 = [await crear_alumno(f"Relleno1-{i}") for i in range(3)]
+    relleno_2 = [await crear_alumno(f"Relleno2-{i}") for i in range(3)]
+
+    await login_como_profesor(cliente, profesor_id)
+    ajuste = await cliente.put(f"/clases/{clase_id}", json={
+        "presupuesto_manager": 120, "limite_equipos_por_jugador": 1,
+    })
+    assert ajuste.status_code == 200
+
+    await login_como_alumno(cliente, manager_1)
+    primera = await cliente.post("/plantillas", json={
+        "jornada_id": jornada_abierta_id,
+        "jugadores_ids": [manager_1, jugador_objetivo] + relleno_1,
+        "capitan_id": manager_1,
+    })
+    assert primera.status_code == 201
+
+    # Con el límite en 1, ningún otro manager puede fichar ya al mismo jugador.
+    await login_como_alumno(cliente, manager_2)
+    segunda = await cliente.post("/plantillas", json={
+        "jornada_id": jornada_abierta_id,
+        "jugadores_ids": [manager_2, jugador_objetivo] + relleno_2,
+        "capitan_id": manager_2,
+    })
+    assert segunda.status_code == 422
+
+    # manager_1 puede volver a guardar SU PROPIA plantilla sin problema:
+    # no cuenta contra el límite fichar de nuevo a alguien que ya tenía.
+    await login_como_alumno(cliente, manager_1)
+    reemplazo = await cliente.post("/plantillas", json={
+        "jornada_id": jornada_abierta_id,
+        "jugadores_ids": [manager_1, jugador_objetivo] + relleno_1,
+        "capitan_id": manager_1,
+    })
+    assert reemplazo.status_code == 201
 
 
 @pytest.mark.asyncio

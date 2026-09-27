@@ -36,8 +36,20 @@ class PresupuestoExcedidoError(Exception):
     """La suma de valores de los 5 jugadores supera el presupuesto del manager."""
 
 
+class LimiteDeEquiposExcedidoError(Exception):
+    """Un jugador ya está fichado por tantos managers como permite el
+    límite de equipos por jugador de la clase, en esta misma jornada."""
+
+
 def excede_presupuesto(valores: list[int], presupuesto_manager: int) -> bool:
     return sum(valores) > presupuesto_manager
+
+
+def excede_limite_de_equipos(veces_fichado: int, limite: int) -> bool:
+    """`veces_fichado` es cuántos managers DISTINTOS a este ya tienen al
+    jugador en su plantilla de esta jornada; si al añadir el fichaje
+    actual se llegaría a superar el límite, se rechaza."""
+    return veces_fichado + 1 > limite
 
 
 def esta_dentro_de_ventana(ahora: datetime, apertura: datetime, cierre: datetime) -> bool:
@@ -95,8 +107,20 @@ async def fichar_plantilla(pool: asyncmy.Pool, clase_id: int, manager_id: int, d
             f"La plantilla vale {sum(valores)}, supera el presupuesto de {clase['presupuesto_manager']}."
         )
 
-    jugadores_con_valor = [(j["id"], j["valor_actual"]) for j in jugadores]
     existente = await repository.obtener_por_jornada_y_manager(pool, datos.jornada_id, manager_id)
+    excluir_plantilla_id = existente["id"] if existente is not None else None
+
+    for jugador in jugadores:
+        veces_fichado = await repository.contar_managers_que_fichan_en_jornada(
+            pool, datos.jornada_id, jugador["id"], excluir_plantilla_id=excluir_plantilla_id
+        )
+        if excede_limite_de_equipos(veces_fichado, clase["limite_equipos_por_jugador"]):
+            raise LimiteDeEquiposExcedidoError(
+                f"{jugador['nombre']} ya está en el máximo de "
+                f"{clase['limite_equipos_por_jugador']} equipos permitidos esta jornada."
+            )
+
+    jugadores_con_valor = [(j["id"], j["valor_actual"]) for j in jugadores]
 
     if existente is not None:
         await repository.reemplazar_jugadores(pool, existente["id"], datos.capitan_id, jugadores_con_valor)
