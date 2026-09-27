@@ -6,7 +6,7 @@ estas pruebas comprueban esa capa de forma aislada, sin red ni base de datos.
 import pytest
 from pydantic import ValidationError
 
-from modules.clases.schemas import ClaseCreate
+from modules.clases.schemas import ClaseCreate, ClaseUpdate
 
 DATOS_VALIDOS = {
     "nombre": "1º ESO A",
@@ -22,6 +22,7 @@ def test_acepta_datos_validos_y_aplica_los_valores_por_defecto():
     assert clase.valor_minimo_jugador == 10
     assert clase.presupuesto_manager == 120
     assert clase.factor_recalculo_valor == 0.10
+    assert clase.limite_equipos_por_jugador == 6
 
 
 def test_rechaza_fecha_fin_anterior_o_igual_a_fecha_inicio():
@@ -37,3 +38,20 @@ def test_rechaza_valor_minimo_mayor_que_valor_inicial():
 def test_rechaza_nombre_vacio():
     with pytest.raises(ValidationError):
         ClaseCreate(**{**DATOS_VALIDOS, "nombre": ""})
+
+
+def test_clase_update_acepta_valores_validos():
+    actualizacion = ClaseUpdate(presupuesto_manager=150, limite_equipos_por_jugador=4)
+
+    assert actualizacion.presupuesto_manager == 150
+    assert actualizacion.limite_equipos_por_jugador == 4
+
+
+def test_clase_update_rechaza_presupuesto_no_positivo():
+    with pytest.raises(ValidationError):
+        ClaseUpdate(presupuesto_manager=0, limite_equipos_por_jugador=6)
+
+
+def test_clase_update_rechaza_limite_de_equipos_no_positivo():
+    with pytest.raises(ValidationError):
+        ClaseUpdate(presupuesto_manager=120, limite_equipos_por_jugador=0)
