@@ -3,14 +3,17 @@
 Fichar plantillas exige sesión de alumno; registrar eventos exige sesión
 de profesor — los tests alternan la sesión del `cliente` según toque.
 """
+import uuid
 from datetime import datetime, timedelta
 
 import pytest
 
 from core.database import get_pool
+from core.security import hash_password
+from modules.alumnos import repository as alumnos_repository
 from modules.jornadas import repository as jornadas_repository
 
-from .conftest import login_como_alumno, login_como_profesor
+from .conftest import PASSWORD_ALUMNOS_PRUEBA, login_como_alumno, login_como_profesor
 
 
 async def _crear_jornada_abierta(clase_id: int, numero: int) -> int:
@@ -65,11 +68,26 @@ async def test_clasificacion_general_acumula_varias_jornadas(
     manager_a = cinco_alumnos_ids[0]
     jornada_2_id = await _crear_jornada_abierta(clase_id, 100)
 
-    for jornada_id in (jornada_abierta_id, jornada_2_id):
+    # La rotación obligatoria impide repetir compañeros de una jornada a la
+    # siguiente, así que la segunda jornada usa un grupo de relleno distinto.
+    pool = get_pool()
+    otros_companeros = []
+    for _ in range(4):
+        username = f"clasificacion_test_{uuid.uuid4().hex[:10]}"
+        otros_companeros.append(await alumnos_repository.crear(
+            pool, clase_id, "Jugador de relleno", username, hash_password(PASSWORD_ALUMNOS_PRUEBA), 20
+        ))
+    plantillas_por_jornada = {
+        jornada_abierta_id: cinco_alumnos_ids,
+        jornada_2_id: [manager_a, *otros_companeros],
+    }
+
+    for jornada_id, jugadores_ids in plantillas_por_jornada.items():
         await login_como_alumno(cliente, manager_a)
-        await cliente.post("/plantillas", json={
-            "jornada_id": jornada_id, "jugadores_ids": cinco_alumnos_ids, "capitan_id": manager_a,
+        respuesta_fichaje = await cliente.post("/plantillas", json={
+            "jornada_id": jornada_id, "jugadores_ids": jugadores_ids, "capitan_id": manager_a,
         })
+        assert respuesta_fichaje.status_code == 201
         await login_como_profesor(cliente, profesor_id)
         await cliente.post(
             "/eventos", params={"clase_id": clase_id},

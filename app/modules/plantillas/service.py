@@ -41,6 +41,12 @@ class LimiteDeEquiposExcedidoError(Exception):
     límite de equipos por jugador de la clase, en esta misma jornada."""
 
 
+class CompanerosRepetidosError(Exception):
+    """El manager repite en su plantilla a algún compañero (jugador
+    distinto de sí mismo) que ya tenía en la jornada inmediatamente
+    anterior — petición de Álvaro para forzar la rotación."""
+
+
 def excede_presupuesto(valores: list[int], presupuesto_manager: int) -> bool:
     return sum(valores) > presupuesto_manager
 
@@ -58,6 +64,16 @@ def esta_dentro_de_ventana(ahora: datetime, apertura: datetime, cierre: datetime
 
 def manager_esta_incluido(manager_id: int, jugadores_ids: list[int]) -> bool:
     return manager_id in jugadores_ids
+
+
+def companeros_repetidos(jugadores_nuevos: list[int], jugadores_anteriores: list[int],
+                          manager_id: int) -> set[int]:
+    """Compañeros (jugadores distintos del propio manager) presentes en
+    ambas plantillas. Un conjunto no vacío significa que la rotación
+    obligatoria se está incumpliendo."""
+    nuevos_sin_manager = set(jugadores_nuevos) - {manager_id}
+    anteriores_sin_manager = set(jugadores_anteriores) - {manager_id}
+    return nuevos_sin_manager & anteriores_sin_manager
 
 
 async def _cargar_y_validar_jugadores(pool: asyncmy.Pool, clase_id: int,
@@ -97,6 +113,26 @@ async def fichar_plantilla(pool: asyncmy.Pool, clase_id: int, manager_id: int, d
             "La ventana de fichajes de esta jornada no está abierta "
             f"({jornada['apertura_fichajes']} - {jornada['cierre_fichajes']})."
         )
+
+    jornada_anterior = await jornadas_repository.obtener_por_clase_y_numero(
+        pool, clase_id, jornada["numero"] - 1
+    )
+    if jornada_anterior is not None:
+        plantilla_anterior = await repository.obtener_por_jornada_y_manager(
+            pool, jornada_anterior["id"], manager_id
+        )
+        if plantilla_anterior is not None:
+            jugadores_anteriores = await repository.obtener_jugadores(pool, plantilla_anterior["id"])
+            repetidos = companeros_repetidos(
+                datos.jugadores_ids,
+                [j["jugador_id"] for j in jugadores_anteriores],
+                manager_id,
+            )
+            if repetidos:
+                raise CompanerosRepetidosError(
+                    "Tienes que cambiar a los compañeros de la jornada anterior: "
+                    "no puedes repetir a nadie de tu plantilla anterior."
+                )
 
     clase = await clases_repository.obtener_por_id(pool, clase_id)
     jugadores = await _cargar_y_validar_jugadores(pool, clase_id, datos.jugadores_ids)

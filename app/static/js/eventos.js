@@ -48,4 +48,40 @@
       }
     });
   });
+
+  document.addEventListener("DOMContentLoaded", function () {
+    const formulario = document.querySelector("#form-importar-eventos");
+    if (!formulario) return;
+
+    const alerta = document.querySelector("#alerta-importar-eventos");
+    const exito = document.querySelector("#exito-importar-eventos");
+
+    formulario.addEventListener("submit", async function (evento) {
+      evento.preventDefault();
+      alerta.classList.add("d-none");
+      exito.classList.add("d-none");
+
+      try {
+        const respuesta = await fetch(formulario.action, {
+          method: "POST",
+          body: new FormData(formulario),
+        });
+
+        if (!respuesta.ok) {
+          const error = await respuesta.json().catch(() => null);
+          alerta.textContent = (error && error.detail) || "No se pudo importar el archivo.";
+          alerta.classList.remove("d-none");
+          return;
+        }
+
+        const creados = await respuesta.json();
+        exito.textContent = `Se importaron ${creados.length} eventos correctamente.`;
+        exito.classList.remove("d-none");
+        formulario.reset();
+      } catch (e) {
+        alerta.textContent = "Error de conexión con el servidor.";
+        alerta.classList.remove("d-none");
+      }
+    });
+  });
 })();

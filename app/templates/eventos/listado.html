@@ -77,6 +77,24 @@
       <button class="btn btn-primary" type="submit">Registrar evento</button>
     </div>
   </form>
+
+  <h2 class="h5 mt-5 mb-3">Importar eventos desde un archivo</h2>
+  <p class="text-muted small">
+    Archivo de texto (.txt o .csv), una línea por evento con el formato
+    <code>jornada;alumno;categoria;fecha</code> (fecha en formato AAAA-MM-DD,
+    <code>alumno</code> es su usuario, <code>categoria</code> el nombre exacto
+    del catálogo de puntos). La primera línea puede ser una cabecera, se ignora.
+  </p>
+  <div id="alerta-importar-eventos" class="alert alert-danger d-none" role="alert"></div>
+  <div id="exito-importar-eventos" class="alert alert-success d-none" role="alert"></div>
+  <form class="row g-3" id="form-importar-eventos" action="/eventos/importar?clase_id={{ clase_id }}">
+    <div class="col-md-8">
+      <input class="form-control" type="file" id="archivo_eventos" name="archivo" accept=".txt,.csv" required>
+    </div>
+    <div class="col-md-4">
+      <button class="btn btn-outline-primary" type="submit">Importar</button>
+    </div>
+  </form>
 {% endblock %}
 {% block scripts %}
   <script src="/static/js/eventos.js"></script>
