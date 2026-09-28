@@ -1,5 +1,5 @@
 <p align="center">
-  <img src="app/static/img/logo.svg" width="80" alt="Class Fantasy">
+  <img src="app/static/img/logo.png" width="160" alt="Class Fantasy">
 </p>
 
 # Class Fantasy
