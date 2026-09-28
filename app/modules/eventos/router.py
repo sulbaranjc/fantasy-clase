@@ -4,7 +4,7 @@
 Registrar/editar/borrar eventos queda reservado al profesor (regla de
 negocio explícita: solo él puntúa a los alumnos). Consultar el propio
 historial se permite también al alumno afectado."""
-from fastapi import APIRouter, Depends, HTTPException, Request, status
+from fastapi import APIRouter, Depends, HTTPException, Request, UploadFile, status
 from fastapi.responses import HTMLResponse
 import asyncmy
 
@@ -22,6 +22,7 @@ from modules.eventos.schemas import EventoCreate, EventoOut, EventoUpdate
 from modules.eventos.service import (
     AlumnoInvalidoError,
     EventoInexistenteError,
+    ImportacionInvalidaError,
     JornadaInvalidaError,
     TipoEventoInvalidoError,
 )
@@ -49,6 +50,17 @@ async def api_crear_evento(clase_id: int, datos: EventoCreate, pool: asyncmy.Poo
     except _ERRORES_DE_CONSISTENCIA as exc:
         raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_ENTITY, detail=str(exc)) from exc
     return await service.obtener_evento(pool, evento_id)
+
+
+@router.post("/importar", response_model=list[EventoOut], status_code=status.HTTP_201_CREATED)
+async def api_importar_eventos(clase_id: int, archivo: UploadFile, pool: asyncmy.Pool = Depends(get_pool),
+                                _=Depends(verificar_profesor_dueno_de_clase)):
+    contenido = (await archivo.read()).decode("utf-8")
+    try:
+        ids_creados = await service.importar_eventos_desde_archivo(pool, clase_id, contenido)
+    except ImportacionInvalidaError as exc:
+        raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_ENTITY, detail=str(exc)) from exc
+    return [await service.obtener_evento(pool, evento_id) for evento_id in ids_creados]
 
 
 @router.get("/alumno/{alumno_id}", response_model=list[EventoOut])

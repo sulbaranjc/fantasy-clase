@@ -7,8 +7,9 @@ from core.database import get_pool
 from core.security import hash_password
 from modules.alumnos import repository as alumnos_repository
 from modules.clases import repository as clases_repository
+from modules.jornadas import repository as jornadas_repository
 
-from .conftest import login_como_alumno
+from .conftest import login_como_alumno, login_como_profesor
 
 
 @pytest.mark.asyncio
@@ -175,6 +176,97 @@ async def test_un_alumno_no_puede_ver_eventos_por_jornada_ni_crear(
 
     assert listado.status_code == 403
     assert creacion.status_code == 403
+
+
+@pytest.mark.asyncio
+async def test_importar_eventos_desde_archivo(
+    cliente, clase_id, alumno_id, jornada_id, catalogo_punto_id, profesor_id
+):
+    pool = get_pool()
+    alumno = await alumnos_repository.obtener_por_id(pool, alumno_id)
+    jornada = await jornadas_repository.obtener_por_id(pool, jornada_id)
+
+    contenido = (
+        "jornada;alumno;categoria;fecha\n"
+        f"{jornada['numero']};{alumno['username']};Evento de prueba;2026-09-22\n"
+    )
+
+    respuesta = await cliente.post(
+        "/eventos/importar", params={"clase_id": clase_id},
+        files={"archivo": ("eventos.txt", contenido, "text/plain")},
+    )
+
+    assert respuesta.status_code == 201
+    creados = respuesta.json()
+    assert len(creados) == 1
+    assert creados[0]["alumno_id"] == alumno_id
+    assert creados[0]["jornada_id"] == jornada_id
+    assert creados[0]["puntos_otorgados"] == 5
+
+
+@pytest.mark.asyncio
+async def test_importar_eventos_rechaza_alumno_inexistente(cliente, clase_id, jornada_id, profesor_id):
+    pool = get_pool()
+    jornada = await jornadas_repository.obtener_por_id(pool, jornada_id)
+    contenido = f"{jornada['numero']};no_existe_este_usuario;Evento de prueba;2026-09-22\n"
+
+    respuesta = await cliente.post(
+        "/eventos/importar", params={"clase_id": clase_id},
+        files={"archivo": ("eventos.txt", contenido, "text/plain")},
+    )
+
+    assert respuesta.status_code == 422
+
+
+@pytest.mark.asyncio
+async def test_importar_eventos_rechaza_categoria_inexistente(cliente, clase_id, alumno_id, jornada_id, profesor_id):
+    pool = get_pool()
+    alumno = await alumnos_repository.obtener_por_id(pool, alumno_id)
+    jornada = await jornadas_repository.obtener_por_id(pool, jornada_id)
+    contenido = f"{jornada['numero']};{alumno['username']};Categoria inexistente;2026-09-22\n"
+
+    respuesta = await cliente.post(
+        "/eventos/importar", params={"clase_id": clase_id},
+        files={"archivo": ("eventos.txt", contenido, "text/plain")},
+    )
+
+    assert respuesta.status_code == 422
+
+
+@pytest.mark.asyncio
+async def test_importar_eventos_no_crea_nada_si_una_fila_falla(
+    cliente, clase_id, alumno_id, jornada_id, catalogo_punto_id, profesor_id
+):
+    # Todo o nada: la primera fila es válida, la segunda referencia un
+    # alumno inexistente -> no debe crearse ni siquiera la primera.
+    pool = get_pool()
+    alumno = await alumnos_repository.obtener_por_id(pool, alumno_id)
+    jornada = await jornadas_repository.obtener_por_id(pool, jornada_id)
+    contenido = (
+        f"{jornada['numero']};{alumno['username']};Evento de prueba;2026-09-22\n"
+        f"{jornada['numero']};no_existe_este_usuario;Evento de prueba;2026-09-22\n"
+    )
+
+    respuesta = await cliente.post(
+        "/eventos/importar", params={"clase_id": clase_id},
+        files={"archivo": ("eventos.txt", contenido, "text/plain")},
+    )
+    assert respuesta.status_code == 422
+
+    historial = await cliente.get(f"/eventos/alumno/{alumno_id}")
+    assert historial.json() == []
+
+
+@pytest.mark.asyncio
+async def test_un_alumno_no_puede_importar_eventos(cliente, clase_id, alumno_id):
+    await login_como_alumno(cliente, alumno_id)
+
+    respuesta = await cliente.post(
+        "/eventos/importar", params={"clase_id": clase_id},
+        files={"archivo": ("eventos.txt", "1;x;y;2026-09-22\n", "text/plain")},
+    )
+
+    assert respuesta.status_code == 403
 
 
 @pytest.mark.asyncio
