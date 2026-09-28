@@ -264,6 +264,60 @@ async def test_limite_de_equipos_por_jugador(cliente, clase_id, jornada_abierta_
 
 
 @pytest.mark.asyncio
+async def test_no_puede_repetir_companeros_de_la_jornada_anterior(cliente, clase_id, cinco_alumnos_ids):
+    # Petición de Álvaro: forzar rotación, que los alumnos no repitan
+    # siempre al mismo grupo de compañeros de una jornada a la siguiente.
+    pool = get_pool()
+    manager_id = cinco_alumnos_ids[0]
+    companeros_anteriores = cinco_alumnos_ids[1:]
+
+    jornada_1_id = await _crear_jornada_abierta(clase_id, 1)
+    jornada_2_id = await _crear_jornada_abierta(clase_id, 2)
+
+    async def crear_alumno(nombre):
+        username = f"rotacion_test_{uuid.uuid4().hex[:10]}"
+        return await alumnos_repository.crear(
+            pool, clase_id, nombre, username, hash_password(PASSWORD_ALUMNOS_PRUEBA), 20
+        )
+
+    nuevos_companeros = [await crear_alumno(f"Nuevo-{i}") for i in range(4)]
+
+    await login_como_alumno(cliente, manager_id)
+    primera = await cliente.post("/plantillas", json={
+        "jornada_id": jornada_1_id, "jugadores_ids": cinco_alumnos_ids, "capitan_id": manager_id,
+    })
+    assert primera.status_code == 201
+
+    repite_uno = await cliente.post("/plantillas", json={
+        "jornada_id": jornada_2_id,
+        "jugadores_ids": [manager_id, *nuevos_companeros[:3], companeros_anteriores[0]],
+        "capitan_id": manager_id,
+    })
+    assert repite_uno.status_code == 422
+
+    todos_nuevos = await cliente.post("/plantillas", json={
+        "jornada_id": jornada_2_id,
+        "jugadores_ids": [manager_id, *nuevos_companeros],
+        "capitan_id": manager_id,
+    })
+    assert todos_nuevos.status_code == 201
+
+
+@pytest.mark.asyncio
+async def test_la_primera_jornada_no_tiene_restriccion_de_rotacion(cliente, clase_id, cinco_alumnos_ids):
+    # Sin jornada anterior no hay nada que comparar: nunca debe rechazarse.
+    jornada_1_id = await _crear_jornada_abierta(clase_id, 1)
+    manager_id = cinco_alumnos_ids[0]
+    await login_como_alumno(cliente, manager_id)
+
+    respuesta = await cliente.post("/plantillas", json={
+        "jornada_id": jornada_1_id, "jugadores_ids": cinco_alumnos_ids, "capitan_id": manager_id,
+    })
+
+    assert respuesta.status_code == 201
+
+
+@pytest.mark.asyncio
 async def test_requiere_sesion(cliente):
     respuesta = await cliente.get("/plantillas/jornada/1")
     assert respuesta.status_code == 401

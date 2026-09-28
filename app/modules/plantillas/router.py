@@ -18,6 +18,7 @@ from modules.plantillas import service
 from modules.plantillas.schemas import PlantillaCreate, PlantillaOut
 from modules.plantillas.service import (
     AlumnoInvalidoError,
+    CompanerosRepetidosError,
     FueraDeVentanaError,
     JornadaInvalidaError,
     LimiteDeEquiposExcedidoError,
@@ -29,7 +30,7 @@ router = APIRouter(prefix="/plantillas", tags=["plantillas"])
 
 _ERRORES_DE_NEGOCIO = (
     AlumnoInvalidoError, JornadaInvalidaError, PresupuestoExcedidoError, LimiteDeEquiposExcedidoError,
-    FueraDeVentanaError, ManagerDebeIncluirseError,
+    FueraDeVentanaError, ManagerDebeIncluirseError, CompanerosRepetidosError,
 )
 
 
