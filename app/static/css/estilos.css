@@ -151,6 +151,11 @@ h1, h2, h3, h4, h5, .fc-titulo {
   padding: 3rem 2rem;
   box-shadow: var(--fc-sombra-hover);
 }
+.fc-hero-logo {
+  height: 90px;
+  width: auto;
+  filter: drop-shadow(0 4px 6px rgba(0,0,0,.2));
+}
 .fc-hero .btn-light {
   font-weight: 600;
   border-radius: 999px;
